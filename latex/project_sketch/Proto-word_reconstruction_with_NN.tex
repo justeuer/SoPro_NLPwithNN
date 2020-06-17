@@ -1,0 +1,91 @@
+\documentclass[a4paper, 10pt]{article}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}	
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+\topmargin 0.0cm
+\oddsidemargin 0.2cm
+\textwidth 16cm  
+\textheight 21cm
+\footskip 1.0cm
+\linespread{1.5}  
+
+
+% Citation styles
+\bibliographystyle{apalike}
+\setcitestyle{authoryear, open={(}, close={)}}
+
+\begin{document}
+%-------------------------------------------------------------------------------------------------
+%--- Title
+%-------------------------------------------------------------------------------------------------
+\begin{center}
+    \Huge
+    Proto-word reconstruction with NNs
+\end{center}
+%-------------------------------------------------------------------------------------------------
+%--- Prev work
+%-------------------------------------------------------------------------------------------------
+\section{Work to build on}
+\begin{itemize}
+    \item Reversible-jump MCMC methods \cite{bouchard-Cote_et_al:2013} 
+    \item Conditional random fields \& RNN \cite{ciobanu_ab_2018}
+    \item RNNs \cite{meloni_ab_2019} 
+\end{itemize}
+
+%-------------------------------------------------------------------------------------------------
+%--- Data
+%-------------------------------------------------------------------------------------------------
+\section{Data sources} 
+\begin{itemize}
+    \item Wiktionary 
+    \begin{itemize}
+        \item Many datapoints of dubious quality
+        \item Would have to do most of the data extraction ourselves
+        \item Data dumps available \href{https://dumps.wikimedia.org/enwiktionary/}{here}
+        \item Technically it should be possible possible to get \href{https://wiki.dbpedia.org/wiktionary-rdf-extraction}{RDF data}
+    \end{itemize}
+    \item \href{http://ielex.mpi.nl/}{Indo-European lexical cognacy database}
+    \begin{itemize}
+        \item Used by famous \cite{bouckaert_et_al:2012}
+        \item No longer maintained (since 2016)
+        \item Only Indo-European data, which may be a bit over-investigated
+        \item But: plain TSV
+    \end{itemize}
+    \item \href{https://starling.rinet.ru/downl.php?lan=en}{Evolution of human language project} (used in \cite{hruschka_detecting_2015}).
+    provides cognate data for several Eurasian language families (Altaic, Tungusic, Mongolic, Japonic...)
+    \begin{itemize}
+        \item I didn't know the format (dBase/.dbf), don't know exactly how to use 
+        \item Somewhat outdated (2013)
+        \item Pro: Many languages from many families
+        \item Could try to reconstruct proto-Altaic (which is a deprecated clade) or proto-Transeurasian
+    \end{itemize}
+\end{itemize}
+
+%-------------------------------------------------------------------------------------------------
+%--- Model
+%-------------------------------------------------------------------------------------------------
+\section{Model architectures}
+\begin{itemize}
+    \item Code letters for phonological features
+    \begin{itemize}
+        \item Word = $n_{letters} \times n_{features}$ array
+        \newline
+        \newline
+        $\begin{Bmatrix}
+        l/f & \pm cons & \pm vow & \pm cont & \pm front & .. \\
+        t & 1 & 0 & 0 & 1
+        \end{Bmatrix}$
+    \end{itemize}
+\end{itemize}
+
+%-------------------------------------------------------------------------------------------------
+%--- Refs
+%-------------------------------------------------------------------------------------------------
+\bibliography{../../bib/NLPwithNN.bib}
+\end{document}
