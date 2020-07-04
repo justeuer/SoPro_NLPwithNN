@@ -2,17 +2,26 @@
 ### ASJP:
 ###     https://asjp.clld.org/
 ###     Word lists: https://asjp.clld.org/languages
+###     Introduced by Brown (2008), see papers
 ### ASJP Sound class model:
 ###     https://en.wikipedia.org/wiki/Automated_Similarity_Judgment_Program
 ### LingPy: Python library for historical linguists:
 ###     http://lingpy.org/
 ###     Module reference: https://lingpy.readthedocs.io/en/latest/reference/lingpy.html
+### Pyclts:
+###     https://pypi.org/project/pyclts/
+###     neat tool if we want to generate transcriptions (fast) and don't want to use lingpy
+###     for that. However, lingpy is preferred.
 ##################################################################################################
 
 import copy
 from pathlib import Path
+from lingpy import rc
 
+asjp = rc('asjp')
+print(asjp)
 
+# columns
 DESCRIPTION = 4
 LOAN = 6
 WORD = 8
@@ -57,7 +66,5 @@ for concept, cognate_set in cognates.items():
 
 print("Full cognate sets found: {}".format(len(cognates_purged)))
 
-
-
-
+print(asjp.converter['b'])
 
