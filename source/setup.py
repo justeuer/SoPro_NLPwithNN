@@ -5,6 +5,7 @@
 from Constants import asjp_char_dims, asjp_char_as_vector
 from classes.Characters import ASJPChar
 from classes.Alphabets import ASJPAlphabet
+from classes.Words import Word
 
 def check_vector_dims():
 
@@ -27,11 +28,17 @@ def test_ASJP_alphabet():
     for char in translated:
         print(char.char, char.vector)
 
+def test_Word():
+    word = Word("blau")
+    print(word.get_feature_array())
+
+
 def main():
     print("Testing....")
     check_vector_dims()
     check_char_vectorizers()
     test_ASJP_alphabet()
+    test_Word()
 
 if __name__ == "__main__":
     main()

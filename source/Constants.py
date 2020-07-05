@@ -46,10 +46,10 @@ asjp_char_as_vector = {
 }
 
 asjp_char_dims = [
-        # consonant features
-        'voiced', 'labial', 'dental', 'alveolar', 'palatal/post-alveolar', 'velar', 'uvular',
-        'glottal', 'stop', 'fricative', 'affricate', 'nasal', 'click', 'approximant',
-        'lateral', 'rhotic',
-        # Vowels features
-        'high', 'mid', 'low', 'front', 'central', 'back', 'rounded'
+    # consonant features
+    'voiced', 'labial', 'dental', 'alveolar', 'palatal/post-alveolar', 'velar', 'uvular',
+    'glottal', 'stop', 'fricative', 'affricate', 'nasal', 'click', 'approximant',
+    'lateral', 'rhotic',
+    # Vowels features
+    'high', 'mid', 'low', 'front', 'central', 'back', 'rounded'
 ]

@@ -16,11 +16,14 @@ class Char(ABC):
 
     @abstractmethod
     def get_feature_val(self, feature: str):
-        assert feature in self.dims, "Feature {} not in dimensions!"
-        return self.vector[self.dims.index(feature)]
+        pass
 
     @abstractmethod
     def get_feature_vector(self):
+        pass
+
+    @abstractmethod
+    def get_char(self):
         pass
 
 
@@ -30,10 +33,14 @@ class ASJPChar(Char):
         super(ASJPChar, self).__init__(asjp_char, asjp_char_dims, ASJPVectorizer())
         
     def get_feature_val(self, feature: str):
-        super(ASJPChar, self).get_feature_val(feature)
+        assert feature in self.dims, "Feature {} not in dimensions!"
+        return self.vector[self.dims.index(feature)]
         
     def get_feature_vector(self):
         return self.vector
+
+    def get_char(self):
+        return self.char
         
     def __str__(self):
         str = self.char + " ("
