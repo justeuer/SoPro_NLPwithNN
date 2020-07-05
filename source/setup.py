@@ -2,28 +2,36 @@
 ### Should test the behaviour of our code
 ##################################################################################################
 
-from classes.Vectorizers import asjp_cons_as_vector
-from classes.Characters import asjp_cons_dims
+from Constants import asjp_char_dims, asjp_char_as_vector
 from classes.Characters import ASJPChar
+from classes.Alphabets import ASJPAlphabet
 
 def check_vector_dims():
 
-    for i, (char, vec) in enumerate(asjp_cons_as_vector.items()):
-        assert len(vec) == len(asjp_cons_dims), \
+    for i, (char, vec) in enumerate(asjp_char_as_vector.items()):
+        assert len(vec) == len(asjp_char_dims), \
             "Feature vector in column {} ({}) not of appropriate length!" \
                 .format(i, char)
 
     print("Vector dims match!")
 
 def check_char_vectorizers():
-    for char, vec in asjp_cons_as_vector.items():
+    for char, vec in asjp_char_as_vector.items():
         asjp_char = ASJPChar(char)
-        print(asjp_char, vec)
+        print(asjp_char)
+
+def test_ASJP_alphabet():
+    word = "blau"
+    asjp = ASJPAlphabet()
+    translated = asjp.translate(word)
+    for char in translated:
+        print(char.char, char.vector)
 
 def main():
     print("Testing....")
     check_vector_dims()
     check_char_vectorizers()
+    test_ASJP_alphabet()
 
 if __name__ == "__main__":
     main()

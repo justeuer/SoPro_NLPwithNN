@@ -3,18 +3,10 @@
 ##################################################################################################
 
 from abc import ABC, abstractmethod
-import numpy as np
 from typing import List
 
 from .Vectorizers import Vectorizer, ASJPVectorizer
-
-asjp_cons_dims = [
-    'voiced', 'labial', 'dental', 'alveolar', 'palatal/post-alveolar', 'velar', 'uvular',
-    'glottal', 'stop', 'fricative', 'affricate', 'nasal', 'click', 'approximant',
-    'lateral', 'rhotic'
-]
-
-# TODO: do this for vowels and join
+from Constants import asjp_char_dims
 
 class Char(ABC):
     def __init__(self, char: str, dims: List[str], vectorizer: Vectorizer):
@@ -35,7 +27,7 @@ class Char(ABC):
 class ASJPChar(Char):
 
     def __init__(self, asjp_char: str):
-        super(ASJPChar, self).__init__(asjp_char, asjp_cons_dims, ASJPVectorizer())
+        super(ASJPChar, self).__init__(asjp_char, asjp_char_dims, ASJPVectorizer())
         
     def get_feature_val(self, feature: str):
         super(ASJPChar, self).get_feature_val(feature)
