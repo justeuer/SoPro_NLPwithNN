@@ -22,5 +22,10 @@ class ASJPVectorizer(Vectorizer):
         super(ASJPVectorizer, self).__init__(asjp_char_as_vector)
 
     def apply(self, char: str):
-        assert char in self.map.keys(), "Char {} not in map!".format(char)
-        return self.map[char]
+        #assert char in self.map.keys(), "Char {} not in map!".format(char)
+        # workaround to avoid nasal vowels and stuff
+        if char in self.map.keys():
+            return self.map[char]
+
+    def __str__(self):
+        return self.map

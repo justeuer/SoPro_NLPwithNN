@@ -25,12 +25,9 @@ def test_ASJP_alphabet():
     word = "blau"
     asjp = ASJPAlphabet()
     translated = asjp.translate(word)
-    for char in translated:
-        print(char.char, char.vector)
-
-def test_Word():
-    word = Word("blau")
-    print(word.get_feature_array())
+    print(translated)
+    array = translated.get_feature_array()
+    print(array)
 
 
 def main():
@@ -38,7 +35,6 @@ def main():
     check_vector_dims()
     check_char_vectorizers()
     test_ASJP_alphabet()
-    test_Word()
 
 if __name__ == "__main__":
     main()

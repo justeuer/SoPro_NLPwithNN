@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from .Vectorizers import Vectorizer, ASJPVectorizer
-from Constants import asjp_char_dims
+from Constants import asjp_char_dims, START_SYMBOL, STOP_SYMBOL
 
 class Char(ABC):
     def __init__(self, char: str, dims: List[str], vectorizer: Vectorizer):
@@ -43,6 +43,9 @@ class ASJPChar(Char):
         return self.char
         
     def __str__(self):
+        if self.char == START_SYMBOL or self.char == STOP_SYMBOL:
+            return self.char
+
         str = self.char + " ("
         for i, feature in enumerate(self.dims):
             if self.vector[i] == 1:
