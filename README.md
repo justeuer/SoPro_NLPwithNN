@@ -1,1 +1,1 @@
-# Proto-Word Reconstruction with Recurrent Neural Networks
+# Proto-Word Reconstruction with RNNs
