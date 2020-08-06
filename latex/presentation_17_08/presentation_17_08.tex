@@ -1,0 +1,148 @@
+\documentclass[10pt]{beamer}
+\usepackage{enumitem,xcolor}
+\usepackage{natbib}
+
+\beamertemplatenavigationsymbolsempty
+\usecolortheme{beaver}
+
+% Citation styles
+\bibliographystyle{apalike}
+\setcitestyle{authoryear, open={(}, close={)}}
+
+\newlist{coloritemize}{itemize}{1}
+\setlist[coloritemize]{label=\textcolor{itemizecolor}{-}}
+\colorlet{itemizecolor}{.}
+
+% $\checkmark$
+
+\title{Proto-Word Reconstruction with RNNs}
+\subtitle{Project Sketch}
+\date{\today}
+\author{Julius Steuer \and Morgan Wixted}
+
+%--------------------------------------------------------------------------------------------------
+%--- Title
+%--------------------------------------------------------------------------------------------------
+\begin{document}
+\begin{frame}[plain]
+    \small
+    Software Project NLP with NNs
+    \normalsize
+    \titlepage
+\end{frame}
+
+%--------------------------------------------------------------------------------------------------
+%--- Meloni paper
+%--------------------------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Baseline}
+    Start from \cite{meloni_ab_2019}: 
+    \begin{itemize}
+        \item[--] Romance dataset (not publicly availabe)
+        \item[--] Character-based encoder-decoder architecture with Bahdanau attention
+        \item[--] Characters encoded as 100-bit vectors (localist representation), character embeddings shared over all languages
+        \item[--] Output one character of the reconstructed word per timestep 
+        \item[--] Difference to Machine Translation: \\ 
+        \quad Sentence $\rightarrow$ word, word $\rightarrow$ character
+        \item[--] Evaluate impact of individual languages on reconstruction:
+        \newline
+        \begin{figure}[htp]
+            \centering
+            \includegraphics[width=0.7\textwidth]{graphics/meloni_figure_4.png} 
+        \end{figure}
+    \end{itemize}
+\end{frame}
+
+%--------------------------------------------------------------------------------------------------
+%--- Model
+%--------------------------------------------------------------------------------------------------
+\begin{frame}{Model}
+    TODO: Feature encoding \\
+    Idea:
+    \begin{itemize}
+        \item[--] Use distributed feature encodings to represent characters, not embeddings
+        \item[--] Use the stem of the Latin word as the proto-form, since nominative inflection is seldom preserved in modern Romance 
+        \item[--] Start with ASJP (easily available) transcriptions, later switch to IPA (richer annotation).
+        \item[--] Pairwise alignments of sequence chunks (following \cite{ciobanu_ab_2018}) \\
+        \begin{center}
+        \begin{tabular}{lcccccccccc}
+            \hline
+            \multicolumn{11}{c}{Lat. acc. sing \textit{corticem} 'bark' $\rightarrow$ ASJP \{kortike\}} \\
+            \hline
+            & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\
+            lat. & - & k & o & - & r & t & i & k & - & e \\
+            it. & - & k & o & - & r & t & e & t & C & a \\
+            spa. & - & k & o & - & r & t & e & 8 & - & a \\
+            fr. & e & k & o & - & r & - & - & - & - & - \\
+            rom. & s & k & o & a & r & - & - & c & - & 3  
+        \end{tabular}
+        \end{center}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Model, continued}
+    Input:
+    \begin{itemize}
+        \item[--] One column is represents the input at a single timestep: 
+        \begin{align*}
+            I_{T=t_{1}} &= (-,-,-,e,s) \\
+            I_{T=t_{2}} &= (k,k,k,k,k) \\
+            \cdots \\
+            I_{T=t_{10}} &= (e,a,a,-,3)
+        \end{align*} 
+        \item[--] Attention: \cite{meloni_ab_2019} attend on different languages in the cognate set. \\
+        In our case it depends on how whe present the data to the model:
+        Either (as in the paper) perform a pass through the model to reconstruct a single character (each $I_{T=t_{i}}$ a sequence of inputs), or 
+        \item[--] Use the matrix/vector $I_{T=t_{i}}$ at a single time step, and perform only one pass
+    \end{itemize}
+    TODO: Draw model architecture
+\end{frame}
+
+\begin{frame}
+    \frametitle{Model, expectations}
+    But: The direct precursor of it. \textit{corteccia}, spa. \textit{corteza} etc. is the adjective lat. \textit{corticeus, -a, -um}
+    \begin{itemize}
+        \item[--] We expect the model to reconstruct an a-stem noun instead of a consononat stem
+        \item[--] Spurious sounds (fr. \textit{e-}, rom. \textit{s-}) should be dropped
+        \item[--] Ambiguous sounds may not indicate a clear rule (lat. \textit{-k-} vs. rom. \textit{-c-} vs. spa. \textit{-8-})  
+    \end{itemize}
+    TODO: more items
+\end{frame}
+
+%--------------------------------------------------------------------------------------------------
+%--- Milestones
+%--------------------------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Milestones}
+    Minimal:
+    \begin{itemize}
+        \item[--] Reconstruction with ASJP encodings, small Swadesh list as data 
+        \item[--] Then switch to IPA encodings
+        \item[--] Try different language family (initial guess on unseen data)
+        \item[--] Examinate the influence of differrent (or absent) alignments on model performance  
+    \end{itemize}    
+    Great to have:
+    \begin{itemize}
+        \item[--] Use larger dataset (asked Ciobanu for hers)
+        \item[--] Ensure compatibility with the LingPy \footnote{http://lingpy.org/} WordList 
+        \footnote{http://lingpy.org/reference/lingpy.basic.html\#lingpy.basic.wordlist.Wordlist} class
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Timeline?}
+\end{frame}
+
+%--------------------------------------------------------------------------------------------------
+%--- Refs 
+%--------------------------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{References}
+    \bibliography{../../bib/NLPwithNN.bib}
+\end{frame}
+
+\end{document}
+
+
+
