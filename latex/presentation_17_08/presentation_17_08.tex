@@ -1,6 +1,7 @@
 \documentclass[10pt]{beamer}
 \usepackage{enumitem,xcolor}
 \usepackage{natbib}
+\usepackage[utf8]{inputenc}
 
 \beamertemplatenavigationsymbolsempty
 \usecolortheme{beaver}
@@ -57,12 +58,11 @@
 %--- Model
 %--------------------------------------------------------------------------------------------------
 \begin{frame}{Model}
-    TODO: Feature encoding \\
     Idea:
     \begin{itemize}
         \item[--] Use distributed feature encodings to represent characters, not embeddings
         \item[--] Use the stem of the Latin word as the proto-form, since nominative inflection is seldom preserved in modern Romance 
-        \item[--] Start with ASJP (easily available) transcriptions, later switch to IPA (richer annotation).
+        \item[--] Start with ASJP (easily available) transcriptions (\cite{brown_automated_2008}), later switch to IPA (richer annotation).
         \item[--] Pairwise alignments of sequence chunks (following \cite{ciobanu_ab_2018}) \\
         \begin{center}
         \begin{tabular}{lcccccccccc}
@@ -81,10 +81,19 @@
 \end{frame}
 
 \begin{frame}
+    \frametitle{Model, feature encoding}
+    \begin{figure}
+        \centering
+        \includegraphics[scale=.21]{graphics/asjp_cons.png}
+    \end{figure} 
+\end{frame}
+
+
+\begin{frame}
     \frametitle{Model, continued}
     Input:
     \begin{itemize}
-        \item[--] One column is represents the input at a single timestep: 
+        \item[--] One column represents the input at a single timestep: 
         \begin{align*}
             I_{T=t_{1}} &= (-,-,-,e,s) \\
             I_{T=t_{2}} &= (k,k,k,k,k) \\
@@ -143,6 +152,3 @@
 \end{frame}
 
 \end{document}
-
-
-
