@@ -17,21 +17,30 @@ def unicode_to_ascii(s: str):
     )
 
 
-def preprocess_sentence(sent: str):
+def preprocess_sentence(w):
     """
     convert sentence into form "<start> w1 ... wn . <end>, also replacing numeric symbols"
     :param sent:
     :return:
     """
 
-    sent = unicode_to_ascii(sent)
-    sent = re.sub(r"([?.!,¿])", r" \1 ", sent)
-    sent = re.sub(r'[" "]+', " ", sent)
-    sent = re.sub(r"[^a-zA-Z?.!,¿]+", " ", sent)
-    sent = sent.strip()
-    sent = "<start> {} <end>".format(sent)
+    w = unicode_to_ascii(w.lower().strip())
 
-    return sent
+    # creating a space between a word and the punctuation following it
+    # eg: "he is a boy." => "he is a boy ."
+    # Reference:- https://stackoverflow.com/questions/3645931/python-padding-punctuation-with-white-spaces-keeping-punctuation
+    w = re.sub(r"([?.!,¿])", r" \1 ", w)
+    w = re.sub(r'[" "]+', " ", w)
+
+    # replacing everything with space except (a-z, A-Z, ".", "?", "!", ",")
+    w = re.sub(r"[^a-zA-Z?.!,¿]+", " ", w)
+
+    w = w.strip()
+
+    # adding a start and an end token to the sentence
+    # so that the model know when to start and stop predicting.
+    w = '<start> ' + w + ' <end>'
+    return w
 
 
 def create_dataset(path, num_examples):

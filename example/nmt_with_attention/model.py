@@ -4,11 +4,11 @@ import tensorflow as tf
 class Encoder(tf.keras.Model):
     """ implements the encoder architecture """
 
-    def __init__(self, V, embedding_dim, encoded_units, batch_size):
+    def __init__(self, vocab_size, embedding_dim, encoded_units, batch_size):
         super(Encoder, self).__init__()
         self.batch_size = batch_size
         self.encoded_units = encoded_units
-        self.embedding = tf.keras.layers.Embedding(V, embedding_dim)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
         self.gru = tf.keras.layers.GRU(self.encoded_units,
                                        return_sequences=True,
                                        return_state=True,
@@ -57,16 +57,16 @@ class BahdanauAttention(tf.keras.layers.Layer):
 class Decoder(tf.keras.Model):
     """ implements the decoder architecture """
 
-    def __init__(self, V, embedding_dim, decoded_units, batch_size):
+    def __init__(self, vocab_size, embedding_dim, decoded_units, batch_size):
         super(Decoder, self).__init__()
         self.batch_size = batch_size
         self.decoded_units = decoded_units
-        self.embedding = tf.keras.layers.Embedding(V, embedding_dim)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
         self.gru = tf.keras.layers.GRU(self.decoded_units,
                                        return_sequences=True,
                                        return_state=True,
                                        recurrent_initializer="glorot_uniform")
-        self.fc = tf.keras.layers.Dense(V)
+        self.fc = tf.keras.layers.Dense(vocab_size)
         self.attention = BahdanauAttention(self.decoded_units)
 
     def call(self, x, hidden, encrypted_output):
@@ -77,7 +77,7 @@ class Decoder(tf.keras.Model):
         x = self.embedding(x)
 
         # x shape after concatenation == (batch_size, 1, embedding_dim + hidden_size)
-        x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=1)
+        x = tf.concat([tf.expand_dims(context_vector, 1), x], axis=-1)
 
         # passing the concatenated vector to the GRU
         output, state = self.gru(x)

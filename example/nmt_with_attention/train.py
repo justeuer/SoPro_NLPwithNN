@@ -1,8 +1,12 @@
 import tensorflow as tf
+from model import Encoder
 
+optimizer = tf.keras.optimizers.Adam()
+loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
+    from_logits=True, reduction='none')
 
 # loss function
-def loss_function(real, pred, loss_object):
+def loss_function(real, pred):
     """ wrapper for spare categorical"""
     mask = tf.math.logical_not(tf.math.equal(real, 0))
     loss_ = loss_object(real, pred)
@@ -13,7 +17,7 @@ def loss_function(real, pred, loss_object):
 
 
 @tf.function
-def train_step(input, target, target_lang, encoded_hidden, optimizer, encoder, decoder, batch_size, loss_object):
+def train_step(input, target, encoded_hidden):
     """
      performs one training step (on batch)
     :param input:
@@ -32,7 +36,7 @@ def train_step(input, target, target_lang, encoded_hidden, optimizer, encoder, d
     with tf.GradientTape() as tape:
         encoded_output, encoded_hidden = encoder(input, encoded_hidden)
         decoded_hidden = encoded_hidden
-        decoded_input = tf.expand_dims([target_lang.word_index["<start>"]] * batch_size, 1)
+        decoded_input = tf.expand_dims([target.word_index["<start>"]] * BAT, 1)
 
         # Teacher forcing - feeding the target as the next input
         for t in range(1, target.shape[1]):
