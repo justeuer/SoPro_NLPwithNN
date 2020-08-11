@@ -1,4 +1,4 @@
-\documentclass[10pt]{beamer}
+\documentclass[11pt]{beamer}
 \usepackage{enumitem,xcolor}
 \usepackage{natbib}
 \usepackage[utf8]{inputenc}
@@ -33,6 +33,24 @@
 \end{frame}
 
 %--------------------------------------------------------------------------------------------------
+%--- Goal
+%--------------------------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Goal of the Project}
+    \begin{itemize}
+        \item[--] Provide a tool to automatically reconstruct proto-words for a given sample of cognate sets
+        \item[--] Initial hypothesis if not much is known about the family
+        \item[--] Allow for integration of linguistic knowledge
+        \begin{itemize}
+            \item[$\circ$] Alignment between cognate loci in different languages
+            \item[$\circ$] Exclude word parts assumed to be innovations (e. g. spanish \textit{nos-otros} from latin \textit{no:s}) 
+        \end{itemize}
+        \item[--] Examine the influence of input representations on model performance  
+    \end{itemize}
+    
+
+\end{frame}
+%--------------------------------------------------------------------------------------------------
 %--- Meloni paper
 %--------------------------------------------------------------------------------------------------
 \begin{frame}
@@ -41,13 +59,11 @@
     \begin{itemize}
         \item[--] Romance dataset (not publicly availabe)
         \item[--] Character-based encoder-decoder architecture with Bahdanau attention
-        \item[--] Characters encoded as 100-bit vectors (localist representation), character embeddings shared over all languages
+        \item[--] Characters encoded as 100-bit vectors (localist representation)
         \item[--] Output one character of the reconstructed word per timestep 
-        \item[--] Difference to Machine Translation: \\ 
-        \quad Sentence $\rightarrow$ word, word $\rightarrow$ character
         \item[--] Evaluate impact of individual languages on reconstruction:
         \newline
-        \begin{figure}[htp]
+        \begin{figure}[t]
             \centering
             \includegraphics[width=0.7\textwidth]{graphics/meloni_figure_4.png} 
         \end{figure}
@@ -67,14 +83,14 @@
         \begin{center}
         \begin{tabular}{lcccccccccc}
             \hline
-            \multicolumn{11}{c}{Lat. acc. sing \textit{corticem} 'bark' $\rightarrow$ ASJP \{kortike\}} \\
+            \multicolumn{11}{c}{Latin acc. sing \textit{corticem} 'bark' $\rightarrow$ ASJP \{kortike\}} \\
             \hline
             & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\
-            lat. & - & k & o & - & r & t & i & k & - & e \\
-            it. & - & k & o & - & r & t & e & t & C & a \\
-            spa. & - & k & o & - & r & t & e & 8 & - & a \\
-            fr. & e & k & o & - & r & - & - & - & - & - \\
-            rom. & s & k & o & a & r & - & - & c & - & 3  
+            latin & - & k & o & - & r & t & i & k & - & e \\
+            italian & - & k & o & - & r & t & e & t & C & a \\
+            spanish & - & k & o & - & r & t & e & 8 & - & a \\
+            french & e & k & o & - & r & - & - & - & - & - \\
+            romanian & s & k & o & a & r & - & - & c & - & 3  
         \end{tabular}
         \end{center}
     \end{itemize}
@@ -86,7 +102,11 @@
         \centering
         \includegraphics[scale=.21]{graphics/asjp_cons.png}
     \end{figure} 
-\end{frame}
+    \begin{figure}[htp]
+            \centering
+            \includegraphics[width=0.6\textwidth ]{graphics/asjp_vowels.png}
+    \end{figure}
+ \end{frame}
 
 
 \begin{frame}
@@ -105,18 +125,16 @@
         Either (as in the paper) perform a pass through the model to reconstruct a single character (each $I_{T=t_{i}}$ a sequence of inputs), or 
         \item[--] Use the matrix/vector $I_{T=t_{i}}$ at a single time step, and perform only one pass
     \end{itemize}
-    TODO: Draw model architecture
 \end{frame}
 
 \begin{frame}
-    \frametitle{Model, expectations}
-    But: The direct precursor of it. \textit{corteccia}, spa. \textit{corteza} etc. is the adjective lat. \textit{corticeus, -a, -um}
+    \frametitle{Model, limitations}
+    But: The direct precursor of italian \textit{corteccia}, spanish \textit{corteza} etc. is the latin adjective \textit{corticeus, -a, -um}
     \begin{itemize}
-        \item[--] We expect the model to reconstruct an a-stem noun instead of a consononat stem
-        \item[--] Spurious sounds (fr. \textit{e-}, rom. \textit{s-}) should be dropped
-        \item[--] Ambiguous sounds may not indicate a clear rule (lat. \textit{-k-} vs. rom. \textit{-c-} vs. spa. \textit{-8-})  
+        \item[--] We expect the model to reconstruct an a-stem noun instead of a consononat stem \text{cortex, cortices}
+        \item[--] Spurious sounds (french \textit{e-}, romanian \textit{s-}) should be dropped
+        \item[--] Ambiguous sounds may not indicate a clear rule (latin \textit{-k-} vs. rom. \textit{-c-} vs. spanish \textit{-8-})  
     \end{itemize}
-    TODO: more items
 \end{frame}
 
 %--------------------------------------------------------------------------------------------------
@@ -137,10 +155,6 @@
         \item[--] Ensure compatibility with the LingPy \footnote{http://lingpy.org/} WordList 
         \footnote{http://lingpy.org/reference/lingpy.basic.html\#lingpy.basic.wordlist.Wordlist} class
     \end{itemize}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Timeline?}
 \end{frame}
 
 %--------------------------------------------------------------------------------------------------
