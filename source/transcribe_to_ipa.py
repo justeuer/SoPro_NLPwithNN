@@ -20,12 +20,16 @@ def main():
     epi_italian = epitran.Epitran('ita-Latn')
     epi_spanish = epitran.Epitran('spa-Latn')
     epi_romanian = epitran.Epitran('ron-Latn')
+    epi_portuguese = epitran.Epitran('por-Latn')
+    epi_latin = epitran.Epitran('lat-Latn')
 
     transcriptors = {
         'french': epi_french,
         'italian': epi_italian,
         'spanish': epi_spanish,
         'romanian': epi_romanian,
+        'portuguese': epi_portuguese,
+        'ancestor': epi_latin
     }
 
     out_path.touch()
@@ -50,7 +54,7 @@ def main():
         for lang, word in zip(langs, words):
             if lang in transcriptors:
                 ipa_word = transcriptors[lang].transliterate(word)
-                "don't know why they hav to use that letter"
+                "don't know why they have to use that letter"
                 s += ipa_word + ","
         s = s[:len(s)-1] + "\n"
         #print(s)
@@ -63,8 +67,9 @@ def main():
     test_str = "akt͡ʃelerat͡sie,akseleratjɔ̃,at͡ʃːelerasione,aseleɾasion".replace("ː", ":")
     test_words = test_str.split(",")
     for word in test_words:
-        print(ipa.translate(word))
-
+        ipa_word = ipa.translate(word)
+        print(ipa_word)
+        print(ipa_word.get_feature_array())
 
 if __name__ == "__main__":
     main()

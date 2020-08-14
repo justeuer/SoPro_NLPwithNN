@@ -53,7 +53,7 @@ class Alphabet(object):
     #match_parentheses = re.compile(r'^\(.*\)')
     #match_square_brackets = re.compile(r'^\[.*\]')
     match_long_vowel = re.compile(r"^[aɑeəiɪoɔœɒuʊɛyʏø]:")
-    match_nasal_vowel = re.compile(r"^[ɑɔɛ]̃") # not the best way to do it (nasal tilde not visible, use unicode instead?
+    match_nasal_vowel = re.compile(r"^[aeiouɑɔɛ]̃") # not the best way to do it (nasal tilde not visible, use unicode instead?
     match_long_consonant = re.compile(r"^[pɸfbβvtθsdðzcɟçʝʃʒkxχgɣmnɲŋlɫʎrɾwɥ]:")
     match_affricate = re.compile(r"^[td]͡[szʃʒ]")
     match_long_affricate = re.compile(r"^[td]͡[szʃʒ]:")
