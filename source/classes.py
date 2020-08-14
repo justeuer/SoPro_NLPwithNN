@@ -3,7 +3,6 @@ import numpy as np
 import re
 from typing import Dict, List
 
-
 class Char(object):
     def __init__(self,
                  char: str,
@@ -51,9 +50,13 @@ class Word:
 
 class Alphabet(object):
     """ Class that manages the translation of cognate sets into vector arrays """
-    match_parentheses = re.compile(r'^\(.*\)')
-    match_square_brackets = re.compile(r'^\[.*\]')
-    match_vowel = re.compile(r'^[aeiouE3]:')
+    #match_parentheses = re.compile(r'^\(.*\)')
+    #match_square_brackets = re.compile(r'^\[.*\]')
+    match_long_vowel = re.compile(r"^[aɑeəiɪoɔœɒuʊɛyʏø]:")
+    match_nasal_vowel = re.compile(r"^[ɑɔɛ]̃") # not the best way to do it (nasal tilde not visible, use unicode instead?
+    match_long_consonant = re.compile(r"^[pɸfbβvtθsdðzcɟçʝʃʒkxχgɣmnɲŋlɫʎrɾwɥ]:")
+    match_affricate = re.compile(r"^[td]͡[szʃʒ]")
+    match_long_affricate = re.compile(r"^[td]͡[szʃʒ]:")
 
     def __init__(self,
                  csv: Path,
@@ -93,6 +96,16 @@ class Alphabet(object):
 
         return self._align_cognates(to_align)
 
+    def translate(self, word):
+        print("word", word)
+        chars_ = []
+        chars_.append(self.start_symbol)
+        self._find_chars(word, chars_)
+        chars_.append(self.stop_symbol)
+        print(chars_)
+        chars = [self._create_char(char_) for char_ in chars_]
+        return Word(chars)
+
     def _find_chars(self, chunk: str, chars: List[str]):
         """
         Recursively parses an database entry, looking for '()' (phonological split) and '[]' (spurious morphemes).
@@ -108,6 +121,7 @@ class Alphabet(object):
         if len(chunk) == 0:
             return
         else:
+            """
             if bool(self.match_parentheses.match(chunk)):
                 group = self.match_parentheses.match(chunk).group(0)
                 chunk_ = chunk[len(group):]
@@ -122,16 +136,26 @@ class Alphabet(object):
                 for _ in range(len(group)):
                     chars.append(self.empty_symbol)
                 self._find_chars(chunk_, chars)
-            elif bool(self.match_vowel.match(chunk)):
-                group = self.match_vowel.match(chunk).group(0)
-                chunk_ = chunk[len(group):]
-                chars.append(group)
-                self._find_chars(chunk_, chars)
+            """
+
+            if bool(self.match_long_affricate.match(chunk)):
+                print("long_affricate", chunk)
+                group = self.match_long_affricate.match(chunk).group(0)
+            elif bool(self.match_affricate.match(chunk)):
+                print("affricate", chunk)
+                group = self.match_affricate.match(chunk).group(0)
+            elif bool(self.match_nasal_vowel.match(chunk)):
+                group = self.match_nasal_vowel.match(chunk).group(0)
+            elif bool(self.match_long_consonant.match(chunk)):
+                group = self.match_long_consonant.match(chunk).group(0)
+            elif bool(self.match_long_vowel.match(chunk)):
+                group = self.match_long_vowel.match(chunk).group(0)
             else:
                 group = chunk[0]
-                chunk_ = chunk[len(group):]
-                chars.append(group)
-                self._find_chars(chunk_, chars)
+
+            chunk_ = chunk[len(group):]
+            chars.append(group)
+            self._find_chars(chunk_, chars)
 
     def _align_cognates(self, cognates: Dict[str, List[str]]):
         """
@@ -161,7 +185,7 @@ class Alphabet(object):
             max_l_chunk = max([len(chunk_at_i) for chunk_at_i in chunks_at_i.values()])
             for lang, chunk in chunks_at_i.items():
                 # take care of long vowels
-                if bool(self.match_vowel.match(chunk)) and len(chunk) == 2:
+                if bool(self.match_long_vowel.match(chunk)) and len(chunk) == 2:
                     chunk_ = chunk
                     aligned_chunks[lang].append(chunk_)
                     aligned_chunks[lang].append(self.empty_symbol)
@@ -221,7 +245,7 @@ class Alphabet(object):
             A Char object
         -------
         """
-        assert char in self._alphabet, "Unknown character {}".format(char)
+        assert char in self._alphabet, "Unknown character '{}'".format(char)
         return Char(char, self._features, self._dict[char])
 
     def __str__(self):
@@ -252,3 +276,10 @@ if __name__ == '__main__':
     for lang, word in aligned.items():
         print(lang, word)
         print(word.get_feature_array())
+
+    path_to_ipa = Path("../data/alphabets/ipa.csv")
+    ipa = Alphabet(path_to_ipa)
+    print(ipa)
+    ipa_word = ipa.translate("fra:tɛr")
+    for char in ipa_word.chars:
+        print(char.get_char(), char.get_feature_vector())
