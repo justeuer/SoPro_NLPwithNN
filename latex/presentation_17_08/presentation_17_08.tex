@@ -1,5 +1,6 @@
 \documentclass[11pt]{beamer}
 \usepackage{enumitem,xcolor}
+\usepackage{ulem}
 \usepackage{natbib}
 \usepackage[utf8]{inputenc}
 
@@ -45,10 +46,8 @@
             \item[$\circ$] Alignment between cognate loci in different languages
             \item[$\circ$] Exclude word parts assumed to be innovations (e. g. spanish \textit{nos-otros} from latin \textit{no:s}) 
         \end{itemize}
-        \item[--] Examine the influence of input representations on model performance  
+        \item[--] Examine the influence of input representations on model performance (alignments, transcriptions) 
     \end{itemize}
-    
-
 \end{frame}
 %--------------------------------------------------------------------------------------------------
 %--- Meloni paper
@@ -132,9 +131,10 @@
     But: The direct precursor of italian \textit{corteccia}, spanish \textit{corteza} etc. is the latin adjective \textit{corticeus, -a, -um}
     \begin{itemize}
         \item[--] We expect the model to reconstruct an a-stem noun instead of a consononat stem \text{cortex, cortices}
-        \item[--] Spurious sounds (french \textit{e-}, romanian \textit{s-}) should be dropped
+        \item[--] Spurious sounds (french \textit{e-}, romanian \textit{s-}) should be dropped (?)
         \item[--] Ambiguous sounds may not indicate a clear rule (latin \textit{-k-} vs. rom. \textit{-c-} vs. spanish \textit{-8-})  
     \end{itemize}
+    And: We have to produce alignments ourselves (manually)
 \end{frame}
 
 %--------------------------------------------------------------------------------------------------
@@ -145,15 +145,16 @@
     Minimal:
     \begin{itemize}
         \item[--] Reconstruction with ASJP encodings, small Swadesh list as data 
-        \item[--] Then switch to IPA encodings \footnote{Plan to use epitran: https://github.com/dmort27/epitran}
+        \item[--] \sout{Then switch to IPA encodings}  Using the epitran \footnote{https://github.com/dmort27/epitran} Python package to get IPA transcriptions
         \item[--] Try different language family (initial guess on unseen data)
         \item[--] Examinate the influence of differrent (or absent) alignments on model performance  
     \end{itemize}    
     Great to have:
     \begin{itemize}
-        \item[--] Use larger dataset (Ciobanu shared her dataset)
+        \item[--] \sout{Use larger dataset (ask Ciobanu for hers)} Use Ciobanu's dataset from 2014
         \item[--] Ensure compatibility with the LingPy \footnote{http://lingpy.org/} WordList 
         \footnote{http://lingpy.org/reference/lingpy.basic.html\#lingpy.basic.wordlist.Wordlist} class
+        \item[--] Use LingPy to work with pre-aligned data (Austronesian)
     \end{itemize}
 \end{frame}
 
