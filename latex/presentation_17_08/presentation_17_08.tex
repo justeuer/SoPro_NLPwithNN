@@ -40,6 +40,7 @@
     \frametitle{Goal of the Project}
     \begin{itemize}
         \item[--] Provide a tool to automatically reconstruct proto-words for a given sample of cognate sets
+        \item[--] Allow custom feature encoding \& transcription
         \item[--] Initial hypothesis if not much is known about the family
         \item[--] Allow for integration of linguistic knowledge
         \begin{itemize}
@@ -76,8 +77,8 @@
     Idea:
     \begin{itemize}
         \item[--] Use distributed feature encodings to represent characters, not embeddings
-        \item[--] Use the stem of the Latin word as the proto-form, since nominative inflection is seldom preserved in modern Romance 
-        \item[--] Start with ASJP (easily available) transcriptions (\cite{brown_automated_2008}), later switch to IPA (richer annotation).
+        %\item[--] Use the stem of the Latin word as the proto-form, since nominative inflection is seldom preserved in modern Romance 
+        \item[--] Start with ASJP (easily available) transcriptions (\cite{brown_automated_2008}), then use IPA
         \item[--] Pairwise alignments of sequence chunks (following \cite{ciobanu_ab_2018}) \\
         \begin{center}
         \begin{tabular}{lcccccccccc}
@@ -112,16 +113,26 @@
     \frametitle{Model, continued}
     Input:
     \begin{itemize}
-        \item[--] One column represents the input at a single timestep: 
-        \begin{align*}
-            I_{T=t_{1}} &= (-,-,-,e,s) \\
-            I_{T=t_{2}} &= (k,k,k,k,k) \\
-            \cdots \\
-            I_{T=t_{10}} &= (e,a,a,-,3)
-        \end{align*} 
+        \item[--] One column represents the input at a single timestep, latin character at that alignment position is the expected output:
+        \newline
+        \begin{center}
+        \begin{tabular}{c|c|c}
+            \textbf{T} & \textbf{I} & \textbf{O} \\
+            \hline
+            $t_{1}$ & (- ,- ,e, s) & - \\
+            $t_{2}$ & (k, k, k, k) & k \\
+            $\cdots$ & $\cdots$ \\
+            $t_{10}$ & (a, a, -, 3) & e
+        \end{tabular} 
+        \end{center}
+        %\begin{align*}
+        %    I_{T=t_{1}} &= (-,-,e,s) \\
+        %    I_{T=t_{2}} &= (k,k,k,k) \\
+        %    \cdots \\
+        %    I_{T=t_{10}} &= (a,a,-,3)
+        %\end{align*} 
         \item[--] Attention: \cite{meloni_ab_2019} attend on different languages in the cognate set. \\
-        In our case it depends on how whe present the data to the model:
-        Either (as in the paper) perform a pass through the model to reconstruct a single character (each $I_{T=t_{i}}$ a sequence of inputs), or 
+        $\rightarrow$ Either (as in the paper) perform a pass through the model to reconstruct a single character (each $I_{T=t_{i}}$ a sequence of inputs), or 
         \item[--] Use the matrix/vector $I_{T=t_{i}}$ at a single time step, and perform only one pass
     \end{itemize}
 \end{frame}
@@ -134,7 +145,6 @@
         \item[--] Spurious sounds (french \textit{e-}, romanian \textit{s-}) should be dropped (?)
         \item[--] Ambiguous sounds may not indicate a clear rule (latin \textit{-k-} vs. rom. \textit{-c-} vs. spanish \textit{-8-})  
     \end{itemize}
-    And: We have to produce alignments ourselves (manually)
 \end{frame}
 
 %--------------------------------------------------------------------------------------------------
