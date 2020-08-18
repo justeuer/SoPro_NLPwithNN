@@ -3,6 +3,7 @@ import numpy as np
 import re
 from typing import Dict, List
 
+
 class Char(object):
     def __init__(self,
                  char: str,
@@ -47,16 +48,19 @@ class Word:
             s += char.get_char()
         return s
 
+    def __len__(self):
+        return len(self.chars)
+
 
 class Alphabet(object):
     """ Class that manages the translation of cognate sets into vector arrays """
     #match_parentheses = re.compile(r'^\(.*\)')
     #match_square_brackets = re.compile(r'^\[.*\]')
-    match_long_vowel = re.compile(r"^[aɑeəiɪoɔœɒuʊɛyʏø]:")
-    match_nasal_vowel = re.compile(r"^[aeiouɑɔɛ]̃") # not the best way to do it (nasal tilde not visible, use unicode instead?
-    match_long_consonant = re.compile(r"^[pɸfbβvtθsdðzcɟçʝʃʒkxχgɣmnɲŋlɫʎrɾwɥ]:")
-    match_affricate = re.compile(r"^[td]͡[szʃʒ]")
-    match_long_affricate = re.compile(r"^[td]͡[szʃʒ]:")
+    match_long_vowel = re.compile(r"^[aɑɐeəɨiɪoɔœɒuʊɛyʏø]ː")
+    match_nasal_vowel = re.compile(r"^[aɐeiwoɨuɑɔɛ]̃") # not the best way to do it (nasal tilde not visible, use unicode instead?
+    match_long_consonant = re.compile(r"^[pɸfbβvtθsdðzcɟçʝʃʒkxχgɣmnɲŋlɫʎrɾwɥ]ː")
+    match_affricate = re.compile(r"^[tdɟ]͡[szʃʒʝ]")
+    match_long_affricate = re.compile(r"^[tdɟ]͡[szʃʒʝ]ː")
 
     def __init__(self,
                  csv: Path,
@@ -96,17 +100,16 @@ class Alphabet(object):
 
         return self._align_cognates(to_align)
 
-    def translate(self, word):
-        print("word", word)
+    def translate(self, word: str):
         chars_ = []
         chars_.append(self.start_symbol)
         self._find_chars(word, chars_)
         chars_.append(self.stop_symbol)
-        print(chars_)
         chars = [self._create_char(char_) for char_ in chars_]
         return Word(chars)
 
     def _find_chars(self, chunk: str, chars: List[str]):
+
         """
         Recursively parses an database entry, looking for '()' (phonological split) and '[]' (spurious morphemes).
         Parameters
@@ -139,10 +142,8 @@ class Alphabet(object):
             """
 
             if bool(self.match_long_affricate.match(chunk)):
-                print("long_affricate", chunk)
                 group = self.match_long_affricate.match(chunk).group(0)
             elif bool(self.match_affricate.match(chunk)):
-                print("affricate", chunk)
                 group = self.match_affricate.match(chunk).group(0)
             elif bool(self.match_nasal_vowel.match(chunk)):
                 group = self.match_nasal_vowel.match(chunk).group(0)
@@ -220,7 +221,7 @@ class Alphabet(object):
             The path to the csv file
         -------
         """
-        rows = path.open().read().split("\n")
+        rows = path.open(encoding='utf-16').read().split("\n")
         self._features = rows[self.header_row].split(",")[1:]
         for row in rows[self.header_row + 1:]:
             if row != "":
@@ -233,6 +234,7 @@ class Alphabet(object):
                 for feature_val in cols[self.header_row + 1:]:
                     vec.append(int(feature_val))
                 self._dict[char] = vec
+        print(self._alphabet)
 
     def _create_char(self, char: str):
         """
