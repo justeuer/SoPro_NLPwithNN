@@ -2,7 +2,20 @@ import unicodedata
 import re
 import io
 import tensorflow as tf
+from pathlib import Path
+import os
+import sys
+sys.path.insert(0, "/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/")
+#from .example import romance
 
+path_to_asjp = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/asjp.csv")
+path_to_zip = tf.keras.utils.get_file(
+    "spa-eng.zip",
+    origin='http://storage.googleapis.com/download.tensorflow.org/data/spa-eng.zip',
+    extract=True
+)
+
+path_to_file = os.path.dirname(path_to_zip) + "/spa-eng/spa.txt"
 
 def unicode_to_ascii(s: str):
     """
@@ -24,7 +37,7 @@ def preprocess_sentence(w):
     :return:
     """
 
-    w = unicode_to_ascii(w.lower().strip())
+    w = unicode_to_ascii(w)
 
     # creating a space between a word and the punctuation following it
     # eg: "he is a boy." => "he is a boy ."
@@ -40,9 +53,10 @@ def preprocess_sentence(w):
     # adding a start and an end token to the sentence
     # so that the model know when to start and stop predicting.
     w = '<start> ' + w + ' <end>'
+    #print(w)
     return w
 
-
+#the second argument is supposed to be num_examples
 def create_dataset(path, num_examples):
     """
     creates a bilingual dataset
@@ -56,7 +70,8 @@ def create_dataset(path, num_examples):
         [preprocess_sentence(w) for w in l.split('\t')]
         for l in lines[:num_examples]
     ]
-
+    print("word pairs")
+    print(word_pairs)
     return zip(*word_pairs)
 
 
@@ -73,7 +88,7 @@ def tokenize(language):
 
     return tensor, tokenizer
 
-
+#the second argument is num_examples but we don't need that quite yet
 def load_dataset(path, num_examples=None):
     """
     loads datasets and transform to tensors
@@ -81,10 +96,13 @@ def load_dataset(path, num_examples=None):
     :param num_examples:
     :return:
     """
-    target_language, input_language = create_dataset(path, num_examples)
+    target_language, input_language = create_dataset(path_to_file, num_examples)
     input_tensor, input_tokenizer = tokenize(input_language)
     target_tensor, target_tokenizer = tokenize(target_language)
-
+   # print("input tensor")
+   # print(input_tensor)
+   # print("input tokenizer")
+   # print(input_tokenizer)
     return input_tensor, input_tokenizer, target_tensor, target_tokenizer
 
 
@@ -100,3 +118,6 @@ def convert(lang, tensor):
             print(t)
             print("{}\t-->\t{}".format(t, lang.index_word[t]))
 
+
+if __name__ == '__main__':
+    load_dataset(path_to_file, num_examples=5)

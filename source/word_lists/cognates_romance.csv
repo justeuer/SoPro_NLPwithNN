@@ -1,0 +1,51 @@
+ID	CONCEPT	LATIN	ITALIAN	SPANISH	FRENCH	ROMANIAN	COMMENT
+1	I	ego	io	So	Z3	yew	-
+2	THOU	tu	tu	tu	ti	tu	-
+3	WE	nos	noy	nosotros	nu	noy	-
+4	THIS	hok	Co	esto	s3si	aCesta	-
+5	THAT	id	kwesto	eso	ce	asta	-
+6	WHO	kwE	ki	kyen	ki	kine	-
+7	WHAT	kwi	ke	ke	kwa	Ce	-
+8	NOT	non	non	no	no	nu	French n3 po > no
+9	ALL	totu	tutto	to8o	tu	tot	Latin omnia > totu
+10	MANY	multu	molto	muCo	mult	mult	_ > multu, Latin singular means 'much'
+11	ONE	unu	uno	uno	E	unu	-
+12	TWO	duo	due	dos	de	doy	-
+13	BIG	maNnu	ma5no	ma5no	ma5	mare	French archaic, Spanish means 'great'
+14	LONG	LoNgu	luNgo	luengo	log	lung	Spanish obsolete
+15	SMALL	parwu	pikkolo	peke5o	p3ti	mik	-
+16	WOMAN	mulier	donna	muxer	fam	femeye	-
+17	MAN	wir	uomo	ombre	om	om	-
+18	PERSON	homine	uomo	ombre	om	om	-
+19	FISH	piske	pesse	pe8	pwaso	peSte	Spanish pescado more common
+20	BIRD	awe	utCello	abe	wazo	pas3re	-
+21	DOG	kane	kane	pero	SyE	k3yne	-
+22	LOUSE	pEdikuLu	pidokkyo	pyoxo	pu	p3duke	-
+23	TREE	arbore	albero	arbol	aXbX3	arbore	-
+24	SEED	sEgEte	semente	syembra	s3mos	sem3n3tur3	-
+25	LEAF	foLiu	foLLa	oxa	fEy	frunz3	-
+26	ROOT	radike	radiCe	rai8	Xasin	r3d3Cin3	-
+27	BARK	kortike	kortetCa	korte8a	ekoXs	skoarc3	-
+28	SKIN	pelle	pelle	pyel	po	pyele	alternative Latin cutis
+29	FLESH	karne	karne	karne	vyod	korn	French chair not included
+30	BLOOD	saNgwine	sangue	sangre	so	s3nje	-
+31	BONE	os	osso	weso	os	os	-
+32	FAT (ORGANIC SUBSTANCE)	piNgwe	grasso	grasa	gXEs	gr3sime	Romanian utur3 excluded
+33	EGG	owu	uovo	webo	Ef	ow	-
+34	HORN	kornu	korno	kwerno	koXn	korn	-
+35	TAIL	kauda	koda	kola	ke	koad3	-
+36	FEATHER	pEnna	penna	pluma	plim	pan3	-
+37	HAIR	kapillu	kapello	kabeSo	Sve	p3r	-
+38	HEAD	kaput	kapo	kabe8a	tEt	kap	-
+39	EAR	aure	orekkyo	orexa	oXEy	ureke	use Romance *auricula instead?
+40	EYE	okuL	okkyo	oxo	Ey	oky	-
+41	NOSE	nasu	nazo	nari8	ne	nas	-
+42	MOUTH	os	bokka	boka	buS	gur3	use Romance *bucca instead?
+43	TOOTH	dete	dente	dyente	do	dint	-
+44	TONGUE	liNgwa	liNgua	leNgwa	log	limb3	-
+45	CLAW	uNgwikuLu	uNgya	ogl3	u5a	ungye	-
+46	FOOT	pede	piede	pye	pye	piCyor	-
+47	KNEE	gEnu	jinokkyo	ro8iSa	Z3nu	jenunky	-
+48	HAND	manu	mano	mano	mE	m3n3	-
+49	BELLY	wEntEr	ventre	byentre	votXe	burt3	-
+50	NECK	kollu	kollo	kweSo	ku	g3t	-

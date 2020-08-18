@@ -1,4 +1,8 @@
 # source: https://www.tensorflow.org/tutorials/text/nmt_with_attention
+import sys
+#point path to focus on root directory rather than just the example directory
+#because we need to import modules from other directories
+sys.path.insert(0, "/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/")
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -8,11 +12,13 @@ from pathlib import Path
 import io
 import time
 import os
-
 from utils import load_dataset, preprocess_sentence
 from model import Encoder, Decoder, BahdanauAttention
 from train import train_step
 from train import loss_function
+from source import sets
+from source.sets import load_dataset
+
 
 print("Tensorflow version: ", tf.__version__)
 
@@ -27,13 +33,26 @@ path_to_zip = tf.keras.utils.get_file(
     extract=True
 )
 
+cognate_set = {
+        "lat": "o:s",
+        "it": "os[so]",
+        "sp": "(we)s[o]",
+        "fr": "os",
+        "rom": "os"
+    }
+
 path_to_file = os.path.dirname(path_to_zip) + "/spa-eng/spa.txt"
+path_to_asjp = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/asjp.csv")
 
-
+word_feature_list = []
 # limit data for development
-num_examples = 30000
-
-input_tensor, input_language, target_tensor, target_language = load_dataset(path_to_file, num_examples)
+num_examples = 30
+#test = example(path_to_asjp)
+#test = load_dataset(path_to_file)
+#print(test)
+input_tensor, input_language, target_tensor, target_language = load_dataset(cognate_set)
+#print("input tensor", "input language", "target tensor", "target language")
+#print(input_tensor, input_language, target_tensor, target_language)
 max_length_target, max_length_input = target_tensor.shape[1], input_tensor.shape[1]
 
 input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = \
@@ -42,10 +61,10 @@ print(len(input_tensor_train), len(target_tensor_train), len(input_tensor_val), 
 
 # create tensorflow dataset
 BUFFER_SIZE = len(input_tensor_train)
-BATCH_SIZE = 64
+BATCH_SIZE = 1
 steps_per_epoch = len(input_tensor_train) // BATCH_SIZE
-embedding_dim = 256
-units = 1024
+embedding_dim = 3
+units = 5
 vocab_input_size = len(input_language.word_index) + 1
 vocab_target_size = len(target_language.word_index) + 1
 
