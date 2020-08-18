@@ -70,8 +70,6 @@ def create_dataset(path, num_examples):
         [preprocess_sentence(w) for w in l.split('\t')]
         for l in lines[:num_examples]
     ]
-    print("word pairs")
-    print(word_pairs)
     return zip(*word_pairs)
 
 
@@ -99,11 +97,7 @@ def load_dataset(path, num_examples):
     target_language, input_language = create_dataset(path_to_file, num_examples)
     input_tensor, input_tokenizer = tokenize(input_language)
     target_tensor, target_tokenizer = tokenize(target_language)
-   # print("input tensor")
-   # print(input_tensor)
-   # print("input tokenizer")
-   # print(input_tokenizer)
-    return input_tensor, input_tokenizer, target_tensor, target_tokenizer
+    return input_tensor, input_language, target_tensor, target_language
 
 
 def convert(lang, tensor):
@@ -119,5 +113,5 @@ def convert(lang, tensor):
             print("{}\t-->\t{}".format(t, lang.index_word[t]))
 
 
-#if __name__ == '__main__':
-   # load_dataset(path_to_file, num_examples=5)
+if __name__ == '__main__':
+    load_dataset(path_to_file, num_examples=5)

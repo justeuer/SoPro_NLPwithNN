@@ -4,6 +4,11 @@ import re
 from typing import Dict, List
 import tensorflow as tf
 
+'''
+This script preprocesses the cognate sets from asjp (curated from the wordlists found on https://asjp.clld.org/),
+tokenizes them, etc, to prepare them to be loaded into the neural network 
+'''
+
 path_to_asjp = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/asjp.csv")
 
 word_feature_list = []
@@ -103,9 +108,7 @@ class Alphabet(object):
         to_align = {}
         for lang, word in cognates.items():
             chars_ = []
-            lang_ = []
             self._find_chars(word, chars_)
-            self._find_chars(word, lang_)
             to_align[lang] = chars_
 
         return self._align_cognates(to_align)
@@ -254,6 +257,8 @@ class Alphabet(object):
         return s
 
 
+#method to create the corpus (a nested list of each element of the cognate set dictionary with 'start'
+#and 'stop' markers
 def create_dataset(cognate_set):
     #need to get items from cognate set dictionary to create the corpus
     for language, translation in cognate_set.items():
@@ -265,10 +270,11 @@ def create_dataset(cognate_set):
         translation_list.append(translation_marker)
         for l in zip(lang_list, translation_list):
             word_pairs.append(list(l))
-    print("word pairs")
-    print(word_pairs)
+    #print("word pairs")
+  #  print(word_pairs)
     return zip(*word_pairs)
 
+#method to tokenize the created corpus
 def tokenize(language):
     tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
     tokenizer.fit_on_texts(language)
@@ -276,18 +282,30 @@ def tokenize(language):
     tensor = tf.keras.preprocessing.sequence.pad_sequences(tensor, padding='post')
     return tensor, tokenizer
 
-
+#method to convert the cognate set to an array
 def wordArray(path_to_asjp, cognate_set):
     asjp = Alphabet(path_to_asjp)
+   # input_language, target_language = create_dataset(cognate_set)
+   # print(target_language)
     aligned = asjp.translate_and_align(cognate_set)
-    for lang, word in aligned.items():
-        #print(word.get_feature_array())
-        word_array = word.get_feature_array()
-        word_feature_list.append(word.get_feature_array())
+   # print(aligned)
+    for input_language, target_language in aligned.items():
+        input_language, input_tensor = tokenize(input_language)
+       # print("input language")
+       # print(input_language)
+       # print("input tensor")
+      #  print(input_tensor)
+        translated = target_language.get_feature_array()
+        target_tensor = tf.convert_to_tensor(translated)
+        #print("input tensor shape")
+       # print(input_tensor.shape)
+       # print("target tensor shape")
+       # print(target_tensor.shape)
+       # word_feature_list.append(word.get_feature_array())
         #TODO: this might need padding later (see code from n2c2_expression.py) but not sure since
         #with the translation schema used, all arrays are the same length
-
-        return word_feature_list
+        #print(word_feature_list)
+        return input_language, target_language, input_tensor, target_tensor
 
 
 def load_dataset(cognate_set):
@@ -297,14 +315,14 @@ def load_dataset(cognate_set):
     :param num_examples:
     :return:
     """
-    target_language, input_language = create_dataset(cognate_set)
+    input_language, target_language = create_dataset(cognate_set)
     input_tensor, input_tokenizer = tokenize(input_language)
     target_tensor, target_tokenizer = tokenize(target_language)
     return input_tensor, input_tokenizer, target_tensor, target_tokenizer
 
 
-
-if __name__ == '__main__':
-    load_dataset(cognate_set)
+#for debugging purposes
+#if __name__ == '__main__':
+   # load_dataset(cognate_set)
    # create_dataset(cognate_set)
-
+  #  wordArray(path_to_asjp,cognate_set)

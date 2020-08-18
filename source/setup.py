@@ -21,21 +21,22 @@ def check_vector_dims():
 def check_char_vectorizers():
     for char, vec in asjp_char_as_vector.items():
         asjp_char = ASJPChar(char)
-        print(asjp_char)
+       # print(asjp_char)
 
 def test_ASJP_alphabet():
     word = "blau"
     asjp = ASJPAlphabet()
     translated = asjp.translate(word)
-    print(translated)
+   # print(translated)
     array = translated.get_feature_array()
-    #print(array)
+    array = tf.convert_to_tensor(array)
+    print(type(array))
     '''Added by Morgan'''
     #this will save a single tensor
     #save the array to a file
-    np.save("test", array, allow_pickle=False)
+   # np.save("test", array, allow_pickle=False)
     #open the file to make sure everything worked
-    print(np.load("test.npy"))
+   # print(np.load("test.npy"))
 
 
 def main():
