@@ -258,12 +258,15 @@ def create_dataset(cognate_set):
     #need to get items from cognate set dictionary to create the corpus
     for language, translation in cognate_set.items():
         #create start and stop markers for both sides of the corpus
-        language_marker = "<start>" + language + "<stop>"
-        translation_marker = "<start>" + translation + "<stop>"
+        '<start> ' + language + ' <end>'
+        language_marker = '<start> ' + language + ' <end>'
+        translation_marker = '<start> ' + translation + ' <end>'
         lang_list.append(language_marker)
         translation_list.append(translation_marker)
         for l in zip(lang_list, translation_list):
             word_pairs.append(list(l))
+    print("word pairs")
+    print(word_pairs)
     return zip(*word_pairs)
 
 def tokenize(language):

@@ -46,13 +46,13 @@ path_to_asjp = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software
 
 word_feature_list = []
 # limit data for development
-num_examples = 30
+num_examples = 5
 #test = example(path_to_asjp)
 #test = load_dataset(path_to_file)
 #print(test)
 input_tensor, input_language, target_tensor, target_language = load_dataset(cognate_set)
-#print("input tensor", "input language", "target tensor", "target language")
-#print(input_tensor, input_language, target_tensor, target_language)
+print("target language")
+print(target_language)
 max_length_target, max_length_input = target_tensor.shape[1], input_tensor.shape[1]
 
 input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = \

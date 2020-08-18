@@ -89,7 +89,7 @@ def tokenize(language):
     return tensor, tokenizer
 
 #the second argument is num_examples but we don't need that quite yet
-def load_dataset(path, num_examples=None):
+def load_dataset(path, num_examples):
     """
     loads datasets and transform to tensors
     :param path:
@@ -119,5 +119,5 @@ def convert(lang, tensor):
             print("{}\t-->\t{}".format(t, lang.index_word[t]))
 
 
-if __name__ == '__main__':
-    load_dataset(path_to_file, num_examples=5)
+#if __name__ == '__main__':
+   # load_dataset(path_to_file, num_examples=5)
