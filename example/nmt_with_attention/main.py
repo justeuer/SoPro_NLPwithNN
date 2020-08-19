@@ -16,8 +16,8 @@ from utils import load_dataset, preprocess_sentence
 from model import Encoder, Decoder, BahdanauAttention
 from train import train_step
 from train import loss_function
-#from source import sets
-#from source.sets import wordArray
+from source import sets
+from source.sets import load_dataset
 
 
 print("Tensorflow version: ", tf.__version__)
@@ -46,10 +46,14 @@ path_to_asjp = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software
 
 word_feature_list = []
 # limit data for development
-num_examples = 3000
+num_examples = 5
 
 #wordArray(path_to_asjp, cognate_set)
-input_tensor, input_language, target_tensor, target_language = load_dataset(path_to_file, num_examples)
+input_tensor, input_language, target_tensor, target_language = load_dataset(cognate_set)
+print("input tensor shape")
+print(type(input_tensor))
+print("target tensor shape")
+print(type(target_tensor))
 max_length_target, max_length_input = input_tensor.shape[1], target_tensor.shape[1]
 
 input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = \
@@ -58,10 +62,10 @@ print(len(input_tensor_train), len(target_tensor_train), len(input_tensor_val), 
 
 # create tensorflow dataset
 BUFFER_SIZE = len(input_tensor_train)
-BATCH_SIZE = 64
+BATCH_SIZE = 1
 steps_per_epoch = len(input_tensor_train) // BATCH_SIZE
-embedding_dim = 256
-units = 1024
+embedding_dim = 3
+units = 5
 vocab_input_size = len(input_language.word_index) + 1
 vocab_target_size = len(target_language.word_index) + 1
 

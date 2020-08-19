@@ -3,7 +3,7 @@ import numpy as np
 import re
 from typing import Dict, List
 import tensorflow as tf
-
+import itertools
 '''
 This script preprocesses the cognate sets from asjp (curated from the wordlists found on https://asjp.clld.org/),
 tokenizes them, etc, to prepare them to be loaded into the neural network 
@@ -94,6 +94,7 @@ class Alphabet(object):
         self.chars_col = chars_col
         self._load(csv)
 
+
     def translate_and_align(self, cognates: Dict[str, str]):
         """
         Translates and aligns words in a cognate set into a classes.Words.Word object
@@ -112,6 +113,7 @@ class Alphabet(object):
             to_align[lang] = chars_
 
         return self._align_cognates(to_align)
+
 
     def _find_chars(self, chunk: str, chars: List[str]):
         """
@@ -257,6 +259,7 @@ class Alphabet(object):
         return s
 
 
+
 #method to create the corpus (a nested list of each element of the cognate set dictionary with 'start'
 #and 'stop' markers
 def create_dataset(cognate_set):
@@ -268,44 +271,60 @@ def create_dataset(cognate_set):
         translation_marker = '<start> ' + translation + ' <end>'
         lang_list.append(language_marker)
         translation_list.append(translation_marker)
-        for l in zip(lang_list, translation_list):
-            word_pairs.append(list(l))
+        word_pairs = list(zip(lang_list,translation_list))
+       # for l in zip(lang_list, translation_list):
+            #word_pairs.append(list(l))
     #print("word pairs")
-  #  print(word_pairs)
+    #print(word_pairs)
     return zip(*word_pairs)
+
 
 #method to tokenize the created corpus
 def tokenize(language):
     tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
     tokenizer.fit_on_texts(language)
-    tensor = tokenizer.texts_to_sequences(language)
-    tensor = tf.keras.preprocessing.sequence.pad_sequences(tensor, padding='post')
-    return tensor, tokenizer
+    tensor_tokenizer = tokenizer.texts_to_sequences(language)
+    #set the padding parameters to later add padding
+    max_len = 7
+    for i in tensor_tokenizer:
+        if len(i) > max_len:
+            max_len = len(i)
+    # create the padding
+    for i in tensor_tokenizer:
+        tensor = i + [0] * (max_len - len(i))
+        #convert the padded tensor to an array so we can change the
+        #dimensions and add more padding
+        tensor_array = np.array(tensor)
+        #add enough axes to the array (7) to be equivalent to the
+        #ASJP translation
+        tensor_newaxis = tensor_array[:, np.newaxis][0:7,]
+        #add enough padding to the array with the new axes to be
+        #equivalent to the ASJP translation (27 in total)
+        tensor_final = np.pad(tensor_newaxis, [(0,0), (0,26)], "constant")
+        tensor_list = []
+        tensor_list.append(tensor_final)
+        tensor_flat_list = list(itertools.chain(*tensor_list))
+        tensor = np.array(tensor_flat_list)
+        #print(tensor)
+        return tensor, tokenizer
+
 
 #method to convert the cognate set to an array
 def wordArray(path_to_asjp, cognate_set):
     asjp = Alphabet(path_to_asjp)
-   # input_language, target_language = create_dataset(cognate_set)
-   # print(target_language)
     aligned = asjp.translate_and_align(cognate_set)
-   # print(aligned)
-    for input_language, target_language in aligned.items():
-        input_language, input_tensor = tokenize(input_language)
-       # print("input language")
-       # print(input_language)
-       # print("input tensor")
-      #  print(input_tensor)
-        translated = target_language.get_feature_array()
-        target_tensor = tf.convert_to_tensor(translated)
-        #print("input tensor shape")
-       # print(input_tensor.shape)
-       # print("target tensor shape")
-       # print(target_tensor.shape)
-       # word_feature_list.append(word.get_feature_array())
-        #TODO: this might need padding later (see code from n2c2_expression.py) but not sure since
-        #with the translation schema used, all arrays are the same length
-        #print(word_feature_list)
-        return input_language, target_language, input_tensor, target_tensor
+    for lang, word in aligned.items():
+        #print(lang, word)
+        tokenizer = word.get_feature_array()
+        word_array_list = []
+        word_array_list.append(tokenizer)
+        #flatten the word_array_list so that we can have a list rather
+        #than a nested list
+        word_array_flat_list = list(itertools.chain(*word_array_list))
+        tensor = np.array(word_array_flat_list)
+        print(tensor)
+        return tensor, tokenizer
+
 
 
 def load_dataset(cognate_set):
@@ -316,13 +335,19 @@ def load_dataset(cognate_set):
     :return:
     """
     input_language, target_language = create_dataset(cognate_set)
-    input_tensor, input_tokenizer = tokenize(input_language)
-    target_tensor, target_tokenizer = tokenize(target_language)
+   # print("target language")
+  #  print(target_language)
+    input_tensor, input_tokenizer = tokenize(target_language)
+   # print(input_tensor)
+    target_tensor, target_tokenizer = wordArray(path_to_asjp, cognate_set)
+   # print(target_tensor)
     return input_tensor, input_tokenizer, target_tensor, target_tokenizer
 
 
 #for debugging purposes
-#if __name__ == '__main__':
-   # load_dataset(cognate_set)
+if __name__ == '__main__':
+    load_dataset(cognate_set)
    # create_dataset(cognate_set)
-  #  wordArray(path_to_asjp,cognate_set)
+   # wordArray(path_to_asjp,cognate_set)
+   # extractTarget(cognate_set)
+   #create_translation(cognate_set)

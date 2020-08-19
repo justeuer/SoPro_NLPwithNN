@@ -97,7 +97,7 @@ def load_dataset(path, num_examples):
     target_language, input_language = create_dataset(path_to_file, num_examples)
     input_tensor, input_tokenizer = tokenize(input_language)
     target_tensor, target_tokenizer = tokenize(target_language)
-    return input_tensor, input_language, target_tensor, target_language
+    return input_tensor, input_tokenizer, target_tensor, target_tokenizer
 
 
 def convert(lang, tensor):

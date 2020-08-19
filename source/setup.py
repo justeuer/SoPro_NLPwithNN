@@ -26,11 +26,20 @@ def check_char_vectorizers():
 def test_ASJP_alphabet():
     word = "blau"
     asjp = ASJPAlphabet()
+    word_list = ['o:s', 'os[so]', '(we)s[o]', 'os', 'os']
+    for word in word_list:
+        translated = asjp.translate(word)
+        array = translated.get_feature_array()
+        array_list = []
+        array_list.append(array)
+   # for array in array_list:
+        #print("word array")
+      # print(array)
     translated = asjp.translate(word)
    # print(translated)
     array = translated.get_feature_array()
     array = tf.convert_to_tensor(array)
-    print(type(array))
+  #  print(type(array))
     '''Added by Morgan'''
     #this will save a single tensor
     #save the array to a file
@@ -40,9 +49,9 @@ def test_ASJP_alphabet():
 
 
 def main():
-    print("Testing....")
-    check_vector_dims()
-    check_char_vectorizers()
+   # print("Testing....")
+   # check_vector_dims()
+   # check_char_vectorizers()
     test_ASJP_alphabet()
 
 if __name__ == "__main__":
