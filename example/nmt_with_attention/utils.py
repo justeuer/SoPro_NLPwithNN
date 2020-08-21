@@ -83,7 +83,8 @@ def tokenize(language):
     tokenizer.fit_on_texts(language)
     tensor = tokenizer.texts_to_sequences(language)
     tensor = tf.keras.preprocessing.sequence.pad_sequences(tensor, padding='post')
-
+    print("tokenizer")
+    print(tokenizer)
     return tensor, tokenizer
 
 #the second argument is num_examples but we don't need that quite yet
@@ -96,7 +97,11 @@ def load_dataset(path, num_examples):
     """
     target_language, input_language = create_dataset(path_to_file, num_examples)
     input_tensor, input_tokenizer = tokenize(input_language)
+    print("input tensor")
+    print(input_tensor)
     target_tensor, target_tokenizer = tokenize(target_language)
+    #print("target tensor")
+   # print(target_tensor)
     return input_tensor, input_tokenizer, target_tensor, target_tokenizer
 
 

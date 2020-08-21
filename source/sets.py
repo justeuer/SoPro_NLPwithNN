@@ -259,7 +259,7 @@ class Alphabet(object):
         return s
 
 
-
+#we don't need this method anymore for right now--will keep just in case
 #method to create the corpus (a nested list of each element of the cognate set dictionary with 'start'
 #and 'stop' markers
 def create_dataset(cognate_set):
@@ -279,51 +279,75 @@ def create_dataset(cognate_set):
     return zip(*word_pairs)
 
 
-#method to tokenize the created corpus
-def tokenize(language):
+'''
+So for our net to work, we need to have an equally shaped input language and target language, as well as a vocabulary size.
+The current method is to use the values from the cognate set dictionary (the cognate words,
+transcribed into ASJP) as the input and the resulting array from translating the input into ASJP as the target input.
+For the input language, the result of creating a tokenizer object would be an object of shape of around (3,1) (after converting this to an array) (I don't know the exact shape).
+For the target language, the result of creating an array would be an array of shape of (7,27).
+So, for the input language, we have to manually pad the array (after converting it from a tokenizer object to an array) so that it matches the shape of the target language,
+since the input language and target language arrays are being computed by different methods. Therefore, we cannot simply
+use the padding library provided by Keras because it can't pad for both the input language and the target language. So,
+we had to pad manually, which can be found in the tokenizeTensor method.
+
+Additionally, the net requires a vocabulary size, which is computed from the tokenizer object with the "word_index" function. 
+For the input language, this was easily computed as our raw data was in string format, so we simply just had to use the method provided
+by TensorFlow in order to encode the data and return a tokenizer object. 
+For the translate language, this was not as easily computed because the raw input was an array of shape (7,27).
+So, for right now, we have both the input vocabulary and the target vocabulary as coming from the same source (the transcribed cognate words
+from the cognate set dictionary). For this we use the tokenizeTokenizer method, which returns a tokenizer object.
+For the input tensor, we use the tokenizeTensor method that returns an array, padded to match the shape of the translated array (7.27).
+Finally, for the target tensor, we use the translatedArray method to compute the translations from the transcribed values into an array.
+
+'''
+
+#method to get a tokenizer object for both the input and target tokenizers to be able to compute a vocabulary
+#list for both input and target languages
+def tokenizeTokenizer(cognate_set):
+    translate = list(cognate_set.values())[0]
+    #we need to have markers to mark the start of the transcription and the end of the transcription
+    #since we are doing this on the character level, this part isn't exactly necessary but it is necessary
+    #to get it working with the neural network that we are using
+    translate_with_markers = '< ' + translate + ' >'
     tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
-    tokenizer.fit_on_texts(language)
-    tensor_tokenizer = tokenizer.texts_to_sequences(language)
-    #set the padding parameters to later add padding
-    max_len = 7
+    tokenizer.fit_on_texts(translate_with_markers)
+    tensor_tokenizer = tokenizer.texts_to_sequences(translate_with_markers)
+    return tensor_tokenizer, tokenizer
+
+
+#method to get the input tensor, padded to match the shape of the target tensor
+def tokenizeTensor(cognate_set):
+    #get the first value in the cognate set dictionary (need to figure out how to get multiple values)
+    translate = list(cognate_set.values())[0]
+    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
+    tokenizer.fit_on_texts(translate)
+    tensor_tokenizer = tokenizer.texts_to_sequences(translate)
+    #tensor_tokenizer = tf.keras.preprocessing.sequence.pad_sequences(tensor_tokenizer, padding='post')
+    #print(tensor_tokenizer)
+    # set the padding parameters to later add padding (we want a size of (7,27)
+    max_len = 27
     for i in tensor_tokenizer:
         if len(i) > max_len:
             max_len = len(i)
     # create the padding
-    for i in tensor_tokenizer:
-        tensor = i + [0] * (max_len - len(i))
-        #convert the padded tensor to an array so we can change the
-        #dimensions and add more padding
-        tensor_array = np.array(tensor)
-        #add enough axes to the array (7) to be equivalent to the
-        #ASJP translation
-        tensor_newaxis = tensor_array[:, np.newaxis][0:7,]
-        #add enough padding to the array with the new axes to be
-        #equivalent to the ASJP translation (27 in total)
-        tensor_final = np.pad(tensor_newaxis, [(0,0), (0,26)], "constant")
-        tensor_list = []
-        tensor_list.append(tensor_final)
-        tensor_flat_list = list(itertools.chain(*tensor_list))
-        tensor = np.array(tensor_flat_list)
-        #print(tensor)
-        return tensor, tokenizer
-
+    tensor = np.array([i + [0] * (max_len - len(i)) for i in tensor_tokenizer])
+    # convert the padded tensor to an array so we can change the
+    # dimensions and add more padding
+    tensor_array = np.array(tensor)
+    # add enough axes to the array (7) to be equivalent to the
+    # ASJP translation
+    empty_array = np.zeros((4,27))
+    tokenized_array = np.vstack((tensor_array, empty_array))
+    return tokenized_array, tensor_tokenizer
 
 #method to convert the cognate set to an array
-def wordArray(path_to_asjp, cognate_set):
+def translatedArray(path_to_asjp, cognate_set):
     asjp = Alphabet(path_to_asjp)
     aligned = asjp.translate_and_align(cognate_set)
     for lang, word in aligned.items():
         #print(lang, word)
-        tokenizer = word.get_feature_array()
-        word_array_list = []
-        word_array_list.append(tokenizer)
-        #flatten the word_array_list so that we can have a list rather
-        #than a nested list
-        word_array_flat_list = list(itertools.chain(*word_array_list))
-        tensor = np.array(word_array_flat_list)
-        print(tensor)
-        return tensor, tokenizer
+        translated = word.get_feature_array()
+    return translated
 
 
 
@@ -334,12 +358,35 @@ def load_dataset(cognate_set):
     :param num_examples:
     :return:
     """
-    input_language, target_language = create_dataset(cognate_set)
+   # input_language, target_language = create_dataset(cognate_set)
    # print("target language")
-  #  print(target_language)
-    input_tensor, input_tokenizer = tokenize(target_language)
-   # print(input_tensor)
-    target_tensor, target_tokenizer = wordArray(path_to_asjp, cognate_set)
+   # print(target_language)
+
+    '''
+    For these methods, we only need the input tensor from the tokenizeTensor method, the input and
+    target tokenizers from the tokenizeTokenizer method, and the target tensor from the translatedArray 
+    method. The variables that aren't needed are referred to as dummy variables.
+    '''
+    # we only want the tensor from this method
+    input_tensor, dummy_tokenizer = tokenizeTensor(cognate_set)
+   # print("input tensor")
+    #print(input_tensor)
+
+
+    # we only want the tokenizer from this method
+    dummy_tensor, input_tokenizer = tokenizeTokenizer(cognate_set)
+    #print("input tokenizer")
+    #print(input_tokenizer.word_index)
+
+    #we only want the tokenizer from this method
+    dummy_tensor, target_tokenizer = tokenizeTokenizer(cognate_set)
+    #print("target tokenizer")
+   # print(target_tokenizer.word_index)
+
+
+    #we only want the tensor from this method
+    target_tensor = translatedArray(path_to_asjp, cognate_set)
+  #  print("target tensor")
    # print(target_tensor)
     return input_tensor, input_tokenizer, target_tensor, target_tokenizer
 
@@ -347,7 +394,6 @@ def load_dataset(cognate_set):
 #for debugging purposes
 if __name__ == '__main__':
     load_dataset(cognate_set)
-   # create_dataset(cognate_set)
-   # wordArray(path_to_asjp,cognate_set)
-   # extractTarget(cognate_set)
-   #create_translation(cognate_set)
+    #wordArray(path_to_asjp,cognate_set)
+   #tokenizeNew(cognate_set)
+  # tokenize(cognate_set)

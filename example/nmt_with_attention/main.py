@@ -46,19 +46,16 @@ path_to_asjp = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software
 
 word_feature_list = []
 # limit data for development
-num_examples = 5
+num_examples = 7
 
 #wordArray(path_to_asjp, cognate_set)
 input_tensor, input_language, target_tensor, target_language = load_dataset(cognate_set)
-print("input tensor shape")
-print(type(input_tensor))
-print("target tensor shape")
-print(type(target_tensor))
-max_length_target, max_length_input = input_tensor.shape[1], target_tensor.shape[1]
 
+max_length_target, max_length_input = input_tensor.shape[1], target_tensor.shape[1]
 input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = \
     train_test_split(input_tensor, target_tensor, test_size=0.2)
 print(len(input_tensor_train), len(target_tensor_train), len(input_tensor_val), len(target_tensor_val))
+
 
 # create tensorflow dataset
 BUFFER_SIZE = len(input_tensor_train)
@@ -67,7 +64,12 @@ steps_per_epoch = len(input_tensor_train) // BATCH_SIZE
 embedding_dim = 3
 units = 5
 vocab_input_size = len(input_language.word_index) + 1
+#vocab_target_size = target_language.shape[0]
+print("vocab_input_size")
+print(vocab_input_size)
 vocab_target_size = len(target_language.word_index) + 1
+print("vocab target size")
+print(vocab_target_size)
 
 dataset = tf.data.Dataset.from_tensor_slices((input_tensor_train, target_tensor_train)).shuffle(BUFFER_SIZE)
 dataset = dataset.batch(BATCH_SIZE, drop_remainder=True)
@@ -125,7 +127,14 @@ def train_step(input, target, encoded_hidden):
     with tf.GradientTape() as tape:
         encoded_output, encoded_hidden = encoder(input, encoded_hidden)
         decoded_hidden = encoded_hidden
-        decoded_input = tf.expand_dims([target_language.word_index["<start>"]] * BATCH_SIZE, 1)
+        print("decoded hidden")
+        print(decoded_hidden.shape)
+        print(" ")
+        decoded_input = tf.expand_dims([target_language.word_index["<"]] * BATCH_SIZE, 1)
+        print("decoded input shape")
+        print(decoded_input.shape)
+        print(" ")
+        print(" ")
 
         # Teacher forcing - feeding the target as the next input
         for t in range(1, target.shape[1]):
