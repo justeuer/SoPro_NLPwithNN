@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+from lingpy import rc
 import re
 from typing import Dict, List
 
@@ -262,26 +263,49 @@ class Alphabet(object):
         return s
 
 
-if __name__ == '__main__':
-    cognate_set = {
-        "lat": "o:s",
-        "it": "os[so]",
-        "sp": "(we)s[o]",
-        "fr": "os",
-        "rom": "os"
-    }
+class Asjp2Ipa(object):
 
-    path_to_asjp = Path("../data/alphabets/asjp.csv")
-    asjp = Alphabet(path_to_asjp)
-    aligned = asjp.translate_and_align(cognate_set)
+    def __init__(self,
+                 sca,
+                 ignored_symbols: List[str],
+                 start_symbol="<start>",
+                 stop_symbol="<stop>",
+                 pad_symbol="<pad>",
+                 empty_symbol="-"):
+        self.sca = sca
+        self.empty_symbol = empty_symbol
+        self.start_symbol = start_symbol
+        self.stop_symbol = stop_symbol
+        self.pad_symbol = pad_symbol
+        self.ignored_symbols = ignored_symbols
 
-    for lang, word in aligned.items():
-        print(lang, word)
-        print(word.get_feature_array())
+    def convert(self, chars: List[Char]):
+        s = ""
+        for char in chars:
+            char_ = char.get_char()
+            if char_ == self.empty_symbol:
+                s += self.empty_symbol
+                continue
+            # ignore start and stop symbols
+            if char_ == self.start_symbol or char_ == self.stop_symbol:
+                continue
+            # lingpy doesn't convert nasal vowels
+            if char.get_feature_val('nasal') == 1 and char.get_feature_val('stop') == 0:
+                char_ = char_.replace("ɐ̃", "ɐ").\
+                            replace("ɔ̃", "ɔ").\
+                            replace("w̃", "w").\
+                            replace("ɛ̃", "ɛ").replace("ɑ̃", "ɑ")
+            # also the palatal affricate is not recognized
+            if char.get_feature_val('palatal') == 1 and char.get_feature_val('affricate') == 1:
+                char_ = char_.replace("ɟ͡ʝ", "d͡ʒ")
+            # vowel length is ignored
+            for ignored_symbol in self.ignored_symbols:
+                char_ = char_.replace(ignored_symbol, "")
+            # handle empty string
+            if char_ == "":
+                continue
 
-    path_to_ipa = Path("../data/alphabets/ipa.csv")
-    ipa = Alphabet(path_to_ipa)
-    print(ipa)
-    ipa_word = ipa.translate("fra:tɛr")
-    for char in ipa_word.chars:
-        print(char.get_char(), char.get_feature_vector())
+            char_ = self.sca.converter[char_]
+            s += char_
+
+        return ous
