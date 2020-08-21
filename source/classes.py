@@ -308,4 +308,4 @@ class Asjp2Ipa(object):
             char_ = self.sca.converter[char_]
             s += char_
 
-        return ous
+        return s
