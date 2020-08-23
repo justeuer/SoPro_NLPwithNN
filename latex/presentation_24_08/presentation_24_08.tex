@@ -23,4 +23,57 @@
 \end{tabular}
 \end{landscape}
 
+%---------------------------------------------
+%--Morgan's work from last week (17.8 to 24.8)
+%---------------------------------------------
+\begin{frame}
+    \frametitle{Morgan: Work from last week 17.8 to 24.8}
+    \begin{itemize}
+    \itemsep-2em
+        \item Setting up the neural network
+        \begin{itemize}
+        \itemsep-2em
+            \item[$\circ$] Using the neural machine translation with attention network from TensorFlow.
+            \item[$\circ$] First, got it working with the data provided by TensorFlow.
+            \item[$\circ$] Then, worked to get it working with our data.
+        \end{itemize}
+        \itemsep-2em
+        \item Neural network with our data
+        \begin{itemize}
+        \itemsep-2em
+            \item Challenges:
+        \end{itemize}
+        \begin{itemize}
+        \itemsep-1em
+            \item[$\circ$] Neural network provided by TensorFlow uses string data for the input and target languages.
+             \item[$\circ$] Our data has string data for the input but an array for the target language.
+             \item[$\circ$] So, had to have input for both a string an an array.
+        \end{itemize}
+        \item Status:
+        \begin{itemize}
+        \itemsep-1em
+            \item[$\circ$] Can successfully pass one word (at character level) through the network.
+            \item[$\circ$] Next will be getting an entire cognate set of data to work with the network.
+        \end{itemize}
+    \end{itemize}
+    
+\end{frame}
+%---------------------------------------------
+%--Morgan's work for this week (24.8)
+%---------------------------------------------
+\begin{frame}
+    \frametitle{Morgan: Work for this Week}
+    \begin{itemize}
+    \itemsep-2em
+        \item Train the Neural Net with IPA embeddings
+        \begin{itemize}
+        \itemsep-2em
+            \item[$\circ$] Get a full cognate set to pass through the network.
+             \item[$\circ$] Create a pipeline that can extract the cognate sets from a csv file containing the IPA embeddings and pass them through the neural network. 
+        \end{itemize}
+    \end{itemize}
+
+    
+\end{frame}
+
 \end{document}
