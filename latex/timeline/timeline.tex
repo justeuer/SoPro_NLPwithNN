@@ -1,0 +1,26 @@
+\documentclass[a4paper, 14pt]{article}
+\usepackage{lscape}
+\usepackage{tabularx}
+
+\linespread{3}
+
+\begin{document}
+
+\begin{landscape}
+\begin{tabular}{|l c|c|c|}
+    \multicolumn{4}{c}{\textbf{Tasks}} \\
+    \hline
+    \multicolumn{2}{|c|}{\textbf{Week}} & \textbf{Julius} & \textbf{Morgan} \\
+    \hline
+    0 & 17.08 & Collect Romance cognates from the web \& align the data & Set up the neural net \\
+    1 & 24.08 & Aligned IPA dataset based on Romance data & Train the neural net with IPA embeddings \\
+	2 & 31.08 & ASJP/ASCII dataset from IPA & Train the neural net with ASJP/ASCII embeddings (baseline) \\
+    3 & 07.09 & Work with Ciobanu's data (autmated transcription, alignments) & Compare model performance to baseline \\
+    4 & 14.09 & Try to improve model performance & Evaluate model performance on Ciobanu's data \\
+    5 & 21.09 & \multicolumn{2}{|c|}{Write the paper} \\
+    6 & 28.09 & \multicolumn{2}{|c|}{Try another dataset, tune model parameters} \\
+    \hline
+\end{tabular}
+\end{landscape}
+
+\end{document}
