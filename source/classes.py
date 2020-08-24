@@ -1,11 +1,12 @@
 from pathlib import Path
 import numpy as np
-from lingpy import rc
+from tensorflow import keras
 import re
 from typing import Dict, List
 
 
 class Char(object):
+    """ Class to represent either an IPA, ASJP or ordinary latin char"""
     def __init__(self,
                  char: str,
                  features: List[str],
@@ -34,10 +35,18 @@ class Char(object):
 
 
 class Word:
+    """ Wrapper class, contains a list of chars """
     def __init__(self, chars: List[Char]):
         self.chars = chars
 
     def get_feature_array(self):
+        """
+        Agglutinates the feature vectors of the chars of the word
+        Returns
+            An numpy array of the size (n_chars x n_features)
+        -------
+
+        """
         return np.array([char.get_feature_vector() for char in self.chars])
 
     def get_chars(self):
@@ -55,8 +64,6 @@ class Word:
 
 class Alphabet(object):
     """ Class that manages the translation of cognate sets into vector arrays """
-    #match_parentheses = re.compile(r'^\(.*\)')
-    #match_square_brackets = re.compile(r'^\[.*\]')
     match_long_vowel = re.compile(r"^[aɑɐeəɨiɪoɔœɒuʊɛyʏø]ː")
     match_nasal_vowel = re.compile(r"^[aɐeiwoɨuɑɔɛ]̃") # not the best way to do it (nasal tilde not visible, use unicode instead?
     match_long_consonant = re.compile(r"^[pɸfbβvtθsdðzcɟçʝʃʒkxχgɣmnɲŋlɫʎrɾwɥ]ː")
@@ -65,6 +72,7 @@ class Alphabet(object):
 
     def __init__(self,
                  csv: Path,
+                 encoding='utf-16',
                  start_symbol="<start>",
                  stop_symbol="<stop>",
                  pad_symbol="<pad>",
@@ -80,11 +88,28 @@ class Alphabet(object):
         self.empty_symbol = empty_symnol
         self.header_row = header_row
         self.chars_col = chars_col
-        self._load(csv)
+        self.encoding = encoding
+        self._load(csv, encoding=self.encoding)
+        self._char_labels = self._create_char_labels()
+
+    def _create_char_labels(self):
+        """
+        Creates a
+        Returns
+        -------
+
+        """
+        char_labels = {}
+        char2index = {char: i for i, char in enumerate(list(self._dict.keys()))}
+
+        for char, one_hot_vector in zip(char2index.keys(),
+                                 keras.utils.to_categorical(list(char2index.values()), num_classes=len(char2index))):
+            char_labels[char] = one_hot_vector
+        return char_labels
 
     def translate_and_align(self, cognates: Dict[str, str]):
         """
-        Translates and aligns words in a cognate set into a classes.Words.Word object
+        Translates and aligns words in a cognate set into a classes.Word object
         Parameters
         ----------
         cognates
@@ -93,15 +118,23 @@ class Alphabet(object):
             An Dict of [str, classes.Words.Word]
         -------
         """
-        to_align = {}
-        for lang, word in cognates.items():
-            chars_ = []
-            self._find_chars(word, chars_)
-            to_align[lang] = chars_
+        pass
 
-        return self._align_cognates(to_align)
+    def get_char_labels(self):
+        return self._char_labels
 
     def translate(self, word: str):
+        """
+        Translates a single word into a classes.Word object
+        Parameters
+        ----------
+        word
+            The word to be translated
+        Returns
+            The Word object containing the list of classes.Char object
+        -------
+
+        """
         chars_ = []
         chars_.append(self.start_symbol)
         self._find_chars(word, chars_)
@@ -125,23 +158,6 @@ class Alphabet(object):
         if len(chunk) == 0:
             return
         else:
-            """
-            if bool(self.match_parentheses.match(chunk)):
-                group = self.match_parentheses.match(chunk).group(0)
-                chunk_ = chunk[len(group):]
-                group = group[1:len(group) - 1]
-                chars.append(group)
-                self._find_chars(chunk_, chars)
-            elif bool(self.match_square_brackets.match(chunk)):
-                group = self.match_square_brackets.match(chunk).group(0)
-                chunk_ = chunk[len(group):]
-                group = group[1:len(group) - 1]
-                # ignore affixation
-                for _ in range(len(group)):
-                    chars.append(self.empty_symbol)
-                self._find_chars(chunk_, chars)
-            """
-
             if bool(self.match_long_affricate.match(chunk)):
                 group = self.match_long_affricate.match(chunk).group(0)
             elif bool(self.match_affricate.match(chunk)):
@@ -159,61 +175,7 @@ class Alphabet(object):
             chars.append(group)
             self._find_chars(chunk_, chars)
 
-    def _align_cognates(self, cognates: Dict[str, List[str]]):
-        """
-        Aligns a set of cognates split up in chunks
-        Parameters
-        ----------
-        cognates
-            A dict with language ids as keys and lists of chunks as values
-        Returns
-            A dict containing the aligned cognate words per language
-        -------
-        """
-        aligned_chunks = {lang: [] for lang in cognates}
-        aligned_words = {}
-
-        # collect chunks at each postion, replace empty chunks with the empty symbol
-        max_l_word = max([len(chars) for chars in cognates.values()])
-        for i in range(max_l_word):
-            chunks_at_i = {}
-            for lang, chunks in cognates.items():
-                if i < len(chunks):
-                    chunks_at_i[lang] = chunks[i]
-                else:
-                    chunks_at_i[lang] = self.empty_symbol
-
-            # split aligned chunks into the alphabet symbols
-            max_l_chunk = max([len(chunk_at_i) for chunk_at_i in chunks_at_i.values()])
-            for lang, chunk in chunks_at_i.items():
-                # take care of long vowels
-                if bool(self.match_long_vowel.match(chunk)) and len(chunk) == 2:
-                    chunk_ = chunk
-                    aligned_chunks[lang].append(chunk_)
-                    aligned_chunks[lang].append(self.empty_symbol)
-                elif len(chunk) < max_l_chunk:
-                    chunk_ = chunk
-                    aligned_chunks[lang].append(chunk_)
-                    for _ in range(max_l_chunk - len(chunk)):
-                        aligned_chunks[lang].append(self.empty_symbol)
-                elif len(chunk) > 1:
-                    for chunk_ in chunk:
-                        aligned_chunks[lang].append(chunk_)
-                else:
-                    chunk_ = chunk
-                    aligned_chunks[lang].append(chunk_)
-
-        # create Word object with aligned strings
-        for lang, aligned_list in aligned_chunks.items():
-            chars_ = [self._create_char(self.start_symbol)]
-            for aligned_chunk in aligned_list:
-                chars_.append(self._create_char(aligned_chunk))
-            chars_.append(self._create_char(self.stop_symbol))
-            aligned_words[lang] = Word(chars_)
-
-        return aligned_words
-
-    def _load(self, path: Path):
+    def _load(self, path: Path, encoding='utf-16'):
         """
         Loads the feature set for a classes.Alphabets.Alphabet from a csv file
         Parameters
@@ -222,7 +184,7 @@ class Alphabet(object):
             The path to the csv file
         -------
         """
-        rows = path.open(encoding='utf-16').read().split("\n")
+        rows = path.open(encoding=encoding).read().split("\n")
         self._features = rows[self.header_row].split(",")[1:]
         for row in rows[self.header_row + 1:]:
             if row != "":
@@ -262,9 +224,11 @@ class Alphabet(object):
             s += feature_vals + "\n"
         return s
 
+    def __len__(self):
+        return len(self._dict)
+
 
 class Asjp2Ipa(object):
-
     def __init__(self,
                  sca,
                  ignored_symbols: List[str],
@@ -309,3 +273,10 @@ class Asjp2Ipa(object):
             s += char_
 
         return s
+
+
+if __name__ == '__main__':
+    ipa = Alphabet(Path("../data/alphabets/ipa.csv"), encoding='utf-16')
+    print(ipa.get_char_labels())
+    asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='ascii')
+    print(asjp.get_char_labels())
