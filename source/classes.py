@@ -120,7 +120,7 @@ class Alphabet(object):
         """
         pass
 
-    def get_char_labels(self):
+    def get_char_embeddings(self):
         return self._char_labels
 
     def translate(self, word: str):
@@ -277,6 +277,6 @@ class Asjp2Ipa(object):
 
 if __name__ == '__main__':
     ipa = Alphabet(Path("../data/alphabets/ipa.csv"), encoding='utf-16')
-    print(ipa.get_char_labels())
+    print(ipa.get_char_embeddings())
     asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='ascii')
-    print(asjp.get_char_labels())
+    print(asjp.get_char_embeddings())
