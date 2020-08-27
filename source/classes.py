@@ -1,3 +1,4 @@
+import pandas as pd
 from pathlib import Path
 import numpy as np
 from tensorflow import keras
@@ -7,6 +8,7 @@ from typing import Dict, List
 
 class Char(object):
     """ Class to represent either an IPA, ASJP or ordinary latin char"""
+
     def __init__(self,
                  char: str,
                  features: List[str],
@@ -34,8 +36,9 @@ class Char(object):
         return s
 
 
-class Word:
+class Word(object):
     """ Wrapper class, contains a list of chars """
+
     def __init__(self, chars: List[Char]):
         self.chars = chars
 
@@ -65,7 +68,8 @@ class Word:
 class Alphabet(object):
     """ Class that manages the translation of cognate sets into vector arrays """
     match_long_vowel = re.compile(r"^[aɑɐeəɨiɪoɔœɒuʊɛyʏø]ː")
-    match_nasal_vowel = re.compile(r"^[aɐeiwoɨuɑɔɛ]̃") # not the best way to do it (nasal tilde not visible, use unicode instead?
+    match_nasal_vowel = re.compile(
+        r"^[aɐeiwoɨuɑɔɛ]̃")  # not the best way to do it (nasal tilde not visible, use unicode instead?
     match_long_consonant = re.compile(r"^[pɸfbβvtθsdðzcɟçʝʃʒkxχgɣmnɲŋlɫʎrɾwɥ]ː")
     match_affricate = re.compile(r"^[tdɟ]͡[szʃʒʝ]")
     match_long_affricate = re.compile(r"^[tdɟ]͡[szʃʒʝ]ː")
@@ -90,22 +94,23 @@ class Alphabet(object):
         self.chars_col = chars_col
         self.encoding = encoding
         self._load(csv, encoding=self.encoding)
-        self._char_labels = self._create_char_labels()
+        self._char_embeddings = self.create_char_embeddings()
 
-    def _create_char_labels(self):
+    def create_char_embeddings(self):
         """
         Creates a
         Returns
         -------
 
         """
-        char_labels = {}
+        char_embeddings = {}
         char2index = {char: i for i, char in enumerate(list(self._dict.keys()))}
 
         for char, one_hot_vector in zip(char2index.keys(),
-                                 keras.utils.to_categorical(list(char2index.values()), num_classes=len(char2index))):
-            char_labels[char] = one_hot_vector
-        return char_labels
+                                        keras.utils.to_categorical(list(char2index.values()),
+                                                                   num_classes=len(char2index))):
+            char_embeddings[char] = one_hot_vector
+        return char_embeddings
 
     def translate_and_align(self, cognates: Dict[str, str]):
         """
@@ -121,7 +126,7 @@ class Alphabet(object):
         pass
 
     def get_char_embeddings(self):
-        return self._char_labels
+        return self._char_embeddings
 
     def translate(self, word: str):
         """
@@ -139,7 +144,7 @@ class Alphabet(object):
         chars_.append(self.start_symbol)
         self._find_chars(word, chars_)
         chars_.append(self.stop_symbol)
-        chars = [self._create_char(char_) for char_ in chars_]
+        chars = [self.create_char(char_) for char_ in chars_]
         return Word(chars)
 
     def _find_chars(self, chunk: str, chars: List[str]):
@@ -189,7 +194,7 @@ class Alphabet(object):
         for row in rows[self.header_row + 1:]:
             if row != "":
                 cols = row.split(",")
-                assert len(cols)-1 == len(self._features), \
+                assert len(cols) - 1 == len(self._features), \
                     "Not enough features found, expected {}, got {}".format(len(self._features), len(cols))
                 char = cols[self.chars_col]
                 self._alphabet.append(char)
@@ -199,7 +204,7 @@ class Alphabet(object):
                 self._dict[char] = vec
         print(self._alphabet)
 
-    def _create_char(self, char: str):
+    def create_char(self, char: str):
         """
         Creates a classes.Characters.Character object from a string
         Parameters
@@ -226,6 +231,44 @@ class Alphabet(object):
 
     def __len__(self):
         return len(self._dict)
+
+
+class CognateSet(object):
+    def __init__(self,
+                 id: str,
+                 concept: str,
+                 ancestor: str,
+                 cognate_dict: Dict[str, Word],
+                 alphabet: Alphabet,
+                 pad_to: int):
+        self.id = id
+        self.concept = concept
+        self.alphabet = alphabet
+        self.ancestor = ancestor
+        self.pad_to = pad_to
+        self.cognate_dict = {lang: self._pad(word) for lang, word in cognate_dict.items()}
+
+    def _pad(self, word: Word):
+        for i in range(len(word), self.pad_to):
+            word.get_chars().append(self.alphabet.create_char(self.alphabet.pad_symbol))
+        return word
+
+    def __iter__(self):
+        d = {}
+        for i in range(self.pad_to):
+            for lang, word in self.cognate_dict.items():
+                d[lang] = word.get_chars()[i].get_feature_vector()
+            yield pd.DataFrame(data=d)
+
+    def __str__(self):
+        s = 5*"=" + " Cognate Set {} ".format(self.id) + 5*"=" + "\n"
+        s += "concept: {}\n".format(self.concept)
+        s += "ancestor: {}\n".format(self.ancestor)
+        for li, lang in enumerate(self.cognate_dict.keys()):
+            if lang != self.ancestor:
+                s += "lang {}: {}\n".format(li, lang)
+        s += "pad_to: {}\n".format(self.pad_to)
+        return s
 
 
 class Asjp2Ipa(object):
@@ -255,10 +298,10 @@ class Asjp2Ipa(object):
                 continue
             # lingpy doesn't convert nasal vowels
             if char.get_feature_val('nasal') == 1 and char.get_feature_val('stop') == 0:
-                char_ = char_.replace("ɐ̃", "ɐ").\
-                            replace("ɔ̃", "ɔ").\
-                            replace("w̃", "w").\
-                            replace("ɛ̃", "ɛ").replace("ɑ̃", "ɑ")
+                char_ = char_.replace("ɐ̃", "ɐ"). \
+                    replace("ɔ̃", "ɔ"). \
+                    replace("w̃", "w"). \
+                    replace("ɛ̃", "ɛ").replace("ɑ̃", "ɑ")
             # also the palatal affricate is not recognized
             if char.get_feature_val('palatal') == 1 and char.get_feature_val('affricate') == 1:
                 char_ = char_.replace("ɟ͡ʝ", "d͡ʒ")
@@ -276,7 +319,37 @@ class Asjp2Ipa(object):
 
 
 if __name__ == '__main__':
-    ipa = Alphabet(Path("../data/alphabets/ipa.csv"), encoding='utf-16')
-    print(ipa.get_char_embeddings())
-    asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='ascii')
-    print(asjp.get_char_embeddings())
+    asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='utf-8')
+
+    cols = ['id', 'concept', 'latin', 'italian', 'spanish', 'french', 'portuguese', 'romanian']
+    langs = cols[2:]
+    print("cols", cols)
+    print("langs", langs)
+    romance_loc = Path("../data/romance_asjp_full.csv")
+    romance_data = romance_loc.open(encoding="utf-16").read().split("\n")
+    # purge unaligned data
+    romance_aligned = [line for i, line in enumerate(romance_data[1:]) if i % 2 == 1]
+    print(len(romance_aligned))
+    romance_aligned = romance_aligned[0]
+    line_split = romance_aligned.split(",")
+    assert len(line_split) == len(cols), "Not enough values in line: Expected {}, got {}".format(len(cols), len(line_split))
+
+    cognate_dict = {}
+    for word, col in zip(romance_aligned.split(","), cols):
+        if col in langs:
+            cognate_dict[col] = asjp.translate(word)
+
+    cs = CognateSet(id="1",
+                    concept="I",
+                    ancestor='latin',
+                    cognate_dict=cognate_dict,
+                    alphabet=asjp,
+                    pad_to=5)
+
+    for datapoint in cs:
+        target = datapoint.pop(cs.ancestor)
+        print("target")
+        print(target)
+        print("descendants")
+        print(datapoint)
+    print(cs)
