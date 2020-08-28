@@ -67,6 +67,7 @@ class Word(object):
 
 class Alphabet(object):
     """ Class that manages the translation of cognate sets into vector arrays """
+    # TODO: put re patterns in a file and load them
     match_long_vowel = re.compile(r"^[aɑɐeəɨiɪoɔœɒuʊɛyʏø]ː")
     match_nasal_vowel = re.compile(
         r"^[aɐeiwoɨuɑɔɛ]̃")  # not the best way to do it (nasal tilde not visible, use unicode instead?
@@ -82,7 +83,8 @@ class Alphabet(object):
                  pad_symbol="<pad>",
                  empty_symnol="-",
                  header_row=0,
-                 chars_col=0):
+                 chars_col=0,
+                 encoding_features=True):
         self._features = []
         self._alphabet = []
         self._dict = {}
@@ -93,8 +95,10 @@ class Alphabet(object):
         self.header_row = header_row
         self.chars_col = chars_col
         self.encoding = encoding
+        self.encoding_features = encoding_features
         self._load(csv, encoding=self.encoding)
-        self._char_embeddings = self.create_char_embeddings()
+        if self.encoding_features:
+            self._char_embeddings = self.create_char_embeddings()
 
     def create_char_embeddings(self):
         """
@@ -126,6 +130,15 @@ class Alphabet(object):
         pass
 
     def get_char_embeddings(self):
+        """
+        Helper method to acces the char embeddings
+        Returns
+            The char embeddings derived during setup, Warning if the alphabet does not code for features
+        -------
+
+        """
+        if self.encoding_features:
+            raise Warning("Not encoding for features, use classes.Char.get_feature_vector instead")
         return self._char_embeddings
 
     def translate(self, word: str):
@@ -194,8 +207,9 @@ class Alphabet(object):
         for row in rows[self.header_row + 1:]:
             if row != "":
                 cols = row.split(",")
-                assert len(cols) - 1 == len(self._features), \
-                    "Not enough features found, expected {}, got {}".format(len(self._features), len(cols))
+                if self.encoding_features:
+                    assert len(cols) - 1 == len(self._features), \
+                        "Not enough features found, expected {}, got {}".format(len(self._features), len(cols))
                 char = cols[self.chars_col]
                 self._alphabet.append(char)
                 vec = []
