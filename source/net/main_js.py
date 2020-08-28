@@ -1,8 +1,10 @@
 from argparse import ArgumentParser
 from pathlib import Path
+from sklearn.model_selection import train_test_split
 import tensorflow as tf
 
 from classes import Alphabet, CognateSet
+from net.model import Encoder
 
 HEADER_ROW = 0
 COLUMN_SEPARATOR = ","
@@ -13,6 +15,8 @@ models = ['asjp', 'ipa', 'latin']
 
 valid_size = 0.8
 batch_size = 1
+pad_to = 6 # also vocab size
+
 
 def parser_args():
     parser = ArgumentParser()
@@ -70,14 +74,35 @@ def main():
         for lang, word in zip(langs, words):
             cognate_dict[lang] = alphabet.translate(word)
         cs = CognateSet(id=id, concept=concept, ancestor='latin', cognate_dict=cognate_dict, alphabet=alphabet,
-                        pad_to=20)
+                        pad_to=pad_to)
         cognate_sets.append(cs)
 
-    train_test_split = int(valid_size*len(cognate_sets))
-    train_data = cognate_sets[:train_test_split]
-    valid_data = cognate_sets[train_test_split:]
+    split_index = int(valid_size*len(cognate_sets))
+    train_data = cognate_sets[:split_index]
+    valid_data = cognate_sets[split_index:]
     print("train size: {}".format(len(train_data)))
     print("valid size: {}".format(len(valid_data)))
+
+    for epoch in range(epochs):
+        for cs in train_data:
+            print(cs)
+            for char_embedding in cs:
+                #print(char_embedding)
+                target = char_embedding.pop(cs.ancestor)
+                data = char_embedding
+                #print(target)
+                #print()
+                #print()
+                #print(data)
+                print("target (latin)", target.to_numpy())
+                for lang, embedding in data.items():
+                    print("embedding ({})".format(lang), embedding.to_numpy())
+                    # TODO: here the actual training should happen
+            break
+        break
+
+        # TODO: evaluate
+
 
 
 if __name__ == '__main__':

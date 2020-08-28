@@ -1,9 +1,14 @@
 import pandas as pd
 from pathlib import Path
 import numpy as np
+from numpy.linalg import norm
 from tensorflow import keras
 import re
 from typing import Dict, List
+
+
+def cos_sim(x: np.array, y: np.array):
+    return np.dot(x, y) / (norm(x) * norm(y))
 
 
 class Char(object):
@@ -220,7 +225,7 @@ class Alphabet(object):
 
     def create_char(self, char: str):
         """
-        Creates a classes.Characters.Character object from a string
+        Creates a Char object from a string
         Parameters
         ----------
         char
@@ -231,6 +236,25 @@ class Alphabet(object):
         """
         assert char in self._alphabet, "Unknown character '{}'".format(char)
         return Char(char, self._features, self._dict[char])
+
+    def get_char_by_feature_vector(self, vec: np.array):
+        """
+        Finds the character whose feature vector/embedding is closest to the input vector.
+        Atm we use cosine similarity to do the matching
+        Parameters
+        ----------
+        vec
+            The numpy array representing the char
+        Returns
+            A char object corresponding to the feature vector
+        -------
+        """
+        cos_sims = {}
+        for c, feature_vector in self._dict.items():
+            cos_sims[c] = cos_sim(vec, feature_vector)
+
+        return max(cos_sims, key=cos_sims.get)
+        #for char, ve in self._dict
 
     def __str__(self):
         s = "*** ASJP alphabet class ***\n"
@@ -367,3 +391,8 @@ if __name__ == '__main__':
         print("descendants")
         print(datapoint)
     print(cs)
+
+    char = asjp.create_char("p")
+    print(char)
+    print(char.get_feature_vector())
+    print(asjp.get_char_by_feature_vector(char.get_feature_vector()))
