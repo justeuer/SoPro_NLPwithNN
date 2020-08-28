@@ -1,23 +1,10 @@
+import pandas as pd
 from pathlib import Path
 import numpy as np
+from tensorflow import keras
 import re
 from typing import Dict, List
-import tensorflow as tf
-import itertools
-import pandas as pd
-from tensorflow import keras
-'''
-This script preprocesses the cognate sets from asjp (curated from the wordlists found on https://asjp.clld.org/),
-tokenizes them, etc, to prepare them to be loaded into the neural network 
-'''
 
-path_to_asjp = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/asjp.csv")
-
-path_to_ipa = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/asjp.csv")
-
-path_to_ipa_sets = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/romance_ipa_full.csv")
-
-path_to_asjp_sets = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/romance_asjp_full.csv")
 
 class Char(object):
     """ Class to represent either an IPA, ASJP or ordinary latin char"""
@@ -215,7 +202,7 @@ class Alphabet(object):
                 for feature_val in cols[self.header_row + 1:]:
                     vec.append(int(feature_val))
                 self._dict[char] = vec
-       # print(self._alphabet)
+        print(self._alphabet)
 
     def create_char(self, char: str):
         """
@@ -331,43 +318,22 @@ class Asjp2Ipa(object):
         return s
 
 
+if __name__ == '__main__':
+    asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='utf-8')
 
-
-'''
-So for our net to work, we need to have an equally shaped input language and target language, as well as a vocabulary size.
-The current method is to use the values from the cognate set dictionary (the cognate words,
-transcribed into ASJP) as the input and the resulting array from translating the input into ASJP as the target input.
-For the input language, the result of creating a tokenizer object would be an object of shape of around (3,1) (after converting this to an array) (I don't know the exact shape).
-For the target language, the result of creating an array would be an array of shape of (7,27).
-So, for the input language, we have to manually pad the array (after converting it from a tokenizer object to an array) so that it matches the shape of the target language,
-since the input language and target language arrays are being computed by different methods. Therefore, we cannot simply
-use the padding library provided by Keras because it can't pad for both the input language and the target language. So,
-we had to pad manually, which can be found in the tokenizeTensor method.
-
-Additionally, the net requires a vocabulary size, which is computed from the tokenizer object with the "word_index" function. 
-For the input language, this was easily computed as our raw data was in string format, so we simply just had to use the method provided
-by TensorFlow in order to encode the data and return a tokenizer object. 
-For the translate language, this was not as easily computed because the raw input was an array of shape (7,27).
-So, for right now, we have both the input vocabulary and the target vocabulary as coming from the same source (the transcribed cognate words
-from the cognate set dictionary). For this we use the tokenizeTokenizer method, which returns a tokenizer object.
-For the input tensor, we use the tokenizeTensor method that returns an array, padded to match the shape of the translated array (7.27).
-Finally, for the target tensor, we use the translatedArray method to compute the translations from the transcribed values into an array.
-
-'''
-
-def extractASJP(path_to_asjp):
     cols = ['id', 'concept', 'latin', 'italian', 'spanish', 'french', 'portuguese', 'romanian']
     langs = cols[2:]
-    asjp = Alphabet(Path(path_to_asjp), encoding='utf-8')
-    asjp_sets = Path(path_to_asjp_sets)
-    asjp_data = asjp_sets.open(encoding='utf-16').read().split("\n")
+    print("cols", cols)
+    print("langs", langs)
+    romance_loc = Path("../data/romance_asjp_full.csv")
+    romance_data = romance_loc.open(encoding="utf-16").read().split("\n")
     # purge unaligned data
-    romance_aligned = [line for i, line in enumerate(asjp_data[1:]) if i % 2 == 1]
+    romance_aligned = [line for i, line in enumerate(romance_data[1:]) if i % 2 == 1]
+    print(len(romance_aligned))
     romance_aligned = romance_aligned[0]
     line_split = romance_aligned.split(",")
-    assert len(line_split) == len(cols), "Not enough values in line: Expected {}, got {}".format(len(cols),
-                                                                          len(line_split))
-    #create cognate dict for sets
+    assert len(line_split) == len(cols), "Not enough values in line: Expected {}, got {}".format(len(cols), len(line_split))
+
     cognate_dict = {}
     for word, col in zip(romance_aligned.split(","), cols):
         if col in langs:
@@ -382,79 +348,8 @@ def extractASJP(path_to_asjp):
 
     for datapoint in cs:
         target = datapoint.pop(cs.ancestor)
-        #print("target")
-       # print(target)
-        #these are the translated arrays for each language
-        #print("descendants")
-       # print(datapoint)
-   # print(cs
-    #print(datapoint.shape)
-    padded_target = np.zeros(datapoint.shape)
-    padded_target[:datapoint.shape[0],:datapoint.shape[1]] = datapoint
-    #print("padded target")
-   # print(padded_target)
-   # print("datapoint")
-   # print(datapoint)
-   # print("target")
-   # print(type(target))
-    return datapoint, padded_target
-
-#method to get a tokenizer object for both the input and target tokenizers to be able to compute a vocabulary
-#list for both input and target languages
-def tokenizeTokenizer(cognate_set):
-    translate = list(cognate_set.values())[0]
-    #we need to have markers to mark the start of the transcription and the end of the transcription
-    #since we are doing this on the character level, this part isn't exactly necessary but it is necessary
-    #to get it working with the neural network that we are using
-    translate_with_markers = '< ' + translate + ' >'
-    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
-    tokenizer.fit_on_texts(translate_with_markers)
-    tensor_tokenizer = tokenizer.texts_to_sequences(translate_with_markers)
-    return tensor_tokenizer, tokenizer
-
-
-#method to get the input tensor, padded to match the shape of the target tensor
-def tokenizeTensor(cognate_set):
-    #get the first value in the cognate set dictionary (need to figure out how to get multiple values)
-    translate = list(cognate_set.values())[0]
-    tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
-    tokenizer.fit_on_texts(translate)
-    tensor_tokenizer = tokenizer.texts_to_sequences(translate)
-    #tensor_tokenizer = tf.keras.preprocessing.sequence.pad_sequences(tensor_tokenizer, padding='post')
-    #print(tensor_tokenizer)
-    # set the padding parameters to later add padding (we want a size of (7,27)
-    max_len = 27
-    for i in tensor_tokenizer:
-        if len(i) > max_len:
-            max_len = len(i)
-    # create the padding
-    tensor = np.array([i + [0] * (max_len - len(i)) for i in tensor_tokenizer])
-    # convert the padded tensor to an array so we can change the
-    # dimensions and add more padding
-    tensor_array = np.array(tensor)
-    # add enough axes to the array (7) to be equivalent to the
-    # ASJP translation
-    empty_array = np.zeros((4,27))
-    tokenized_array = np.vstack((tensor_array, empty_array))
-    return tokenized_array, tensor_tokenizer
-
-
-#def load_dataset(path_to_asjp):
- #   """
- #   loads datasets and transform to tensors
- #   :param path:
- #   :param num_examples:
- #   :return:
- #   """
-
-
-  #  return input_tensor, input_tokenizer, target_tensor, target_tokenizer
-
-
-#for debugging purposes
-if __name__ == '__main__':
-  #  load_dataset(cognate_set)
-    #wordArray(path_to_asjp,cognate_set)
-   #tokenizeNew(cognate_set)
-  # tokenize(cognate_set)
-  extractASJP(path_to_asjp)
+        print("target")
+        print(target)
+        print("descendants")
+        print(datapoint)
+    print(cs)

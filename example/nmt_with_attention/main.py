@@ -17,7 +17,7 @@ from model import Encoder, Decoder, BahdanauAttention
 from train import train_step
 from train import loss_function
 from source import sets
-from source.sets import load_dataset
+from source.sets import extractASJP
 
 
 print("Tensorflow version: ", tf.__version__)
@@ -42,16 +42,31 @@ cognate_set = {
     }
 
 path_to_file = os.path.dirname(path_to_zip) + "/spa-eng/spa.txt"
+
 path_to_asjp = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/asjp.csv")
+
+path_to_ipa = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/asjp.csv")
+
+path_to_ipa_sets = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/alphabets/romance_ipa_full.csv")
+
+path_to_asjp_sets = Path("/home/morgan/Documents/saarland/fourth_semester/nn_software_project/sopro-nlpwithnn/data/romance_asjp_full.csv")
 
 word_feature_list = []
 # limit data for development
 num_examples = 7
 
-#wordArray(path_to_asjp, cognate_set)
-input_tensor, input_language, target_tensor, target_language = load_dataset(cognate_set)
+descendant_arrays = extractASJP(path_to_asjp)
+input_tensor, target_tensor = descendant_arrays
+input_tensor = input_tensor.values
+print(input_tensor.shape)
+target_tensor = target_tensor
+print(target_tensor.shape)
 
-max_length_target, max_length_input = input_tensor.shape[1], target_tensor.shape[1]
+
+#input_tensor, input_language, target_tensor, target_language = load_dataset(cognate_set)
+
+max_length_target, max_length_input = target_tensor.shape[1], input_tensor.shape[1]
+
 input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = \
     train_test_split(input_tensor, target_tensor, test_size=0.2)
 print(len(input_tensor_train), len(target_tensor_train), len(input_tensor_val), len(target_tensor_val))
@@ -61,15 +76,10 @@ print(len(input_tensor_train), len(target_tensor_train), len(input_tensor_val), 
 BUFFER_SIZE = len(input_tensor_train)
 BATCH_SIZE = 1
 steps_per_epoch = len(input_tensor_train) // BATCH_SIZE
-embedding_dim = 3
+embedding_dim = 27
 units = 5
-vocab_input_size = len(input_language.word_index) + 1
-#vocab_target_size = target_language.shape[0]
-print("vocab_input_size")
-print(vocab_input_size)
-vocab_target_size = len(target_language.word_index) + 1
-print("vocab target size")
-print(vocab_target_size)
+vocab_input_size = input_tensor.shape[0]
+vocab_target_size = target_tensor.shape[0]
 
 dataset = tf.data.Dataset.from_tensor_slices((input_tensor_train, target_tensor_train)).shuffle(BUFFER_SIZE)
 dataset = dataset.batch(BATCH_SIZE, drop_remainder=True)
@@ -127,17 +137,10 @@ def train_step(input, target, encoded_hidden):
     with tf.GradientTape() as tape:
         encoded_output, encoded_hidden = encoder(input, encoded_hidden)
         decoded_hidden = encoded_hidden
-        print("decoded hidden")
-        print(decoded_hidden.shape)
-        print(" ")
-        decoded_input = tf.expand_dims([target_language.word_index["<"]] * BATCH_SIZE, 1)
-        print("decoded input shape")
-        print(decoded_input.shape)
-        print(" ")
-        print(" ")
+        decoded_input = tf.expand_dims([target_tensor.shape[1]] * BATCH_SIZE, 1)
 
         # Teacher forcing - feeding the target as the next input
-        for t in range(1, target.shape[1]):
+        for t in range(1, target_tensor.shape[1]):
             # passing enc_output to the decoder
             predicted, decoded_hidden, _ = decoder(decoded_input, decoded_hidden, encoded_output)
 
