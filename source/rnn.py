@@ -67,6 +67,9 @@ def parser_args():
                         help="switch between orthographic and feature-based approach")
     return parser.parse_args()
 
+def vector_to_char(vector: np.array, alphabet:Alphabet):
+    return alphabet.get_char_by_feature_vector(vector)
+
 
 def main():
     args = parser_args()
@@ -120,12 +123,14 @@ def main():
     print("valid size: {}".format(len(valid_data)))
 
     for epoch in range(epochs):
-        loss = 0
+        epoch_loss = []
         #iterate over the cognate sets
         for i, cs in enumerate(train_data):
+            batch_loss = []
             #initialize the GradientTape
             with tf.GradientTape(persistent=True) as tape:
                 #iterate over the character embeddings
+                output_word = ""
                 for j, char_embedding in enumerate(cs):
                     #add a dimension to the latin character embedding (ancestor embedding)
                     #we add a dimension because we use a batch size of 1 and TensorFlow does not
@@ -141,11 +146,20 @@ def main():
                         output = model(data)
                         #print(target)
                         #print(output)
+                        #calculate the loss
                         loss = loss_object(target, output)
+                        epoch_loss.append(float(loss))
+                        batch_loss.append(float(loss))
+                        #calculate the gradients
                         gradients = tape.gradient(loss, model.non_trainable_weights)
+                        #backpropagate
                         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                        print("why does pycharm suck on this computer")
-                        print(loss)
+                        #evaluate using Cosine Similarity
+                        output_word += vector_to_char(output, alphabet)
+            print("Reconstructed word={}".format(output_word))
+            print("Batch {}, loss={}".format(i, np.mean(batch_loss)))
+        print("Epoch {}, loss={}".format(epoch, np.mean(epoch_loss)))
+
 
 
 
