@@ -381,22 +381,16 @@ def extractASJP(path_to_asjp):
                     pad_to=5)
 
     for datapoint in cs:
+        #target is the tensor for latin
         target = datapoint.pop(cs.ancestor)
-        #print("target")
-       # print(target)
-        #these are the translated arrays for each language
-        #print("descendants")
-       # print(datapoint)
-   # print(cs
-    #print(datapoint.shape)
+        #datapoint is the tensor for the input of the five
+        #other romance languages
+
+
+    #add padding to the target tensor (latin) to make it match the
+    #input of the five romance languages
     padded_target = np.zeros(datapoint.shape)
     padded_target[:datapoint.shape[0],:datapoint.shape[1]] = datapoint
-    #print("padded target")
-   # print(padded_target)
-   # print("datapoint")
-   # print(datapoint)
-   # print("target")
-   # print(type(target))
     return datapoint, padded_target
 
 #method to get a tokenizer object for both the input and target tokenizers to be able to compute a vocabulary
