@@ -70,27 +70,4 @@ for char, embedding in char_embeddings.items():
     out.write(s)
 out.close()
 
-latin = Alphabet(latin_path, encoding='utf-16', encoding_features=False)
 
-# create cognate sets
-
-cognate_sets = []
-
-for line in romance_ortho[1:]:
-    cognate_dict = {}
-    if line == "":
-        break
-    col_data = line.split(",")
-    id = col_data[cols.index(ID_COL)]
-    concept = col_data[cols.index(CONCEPT_COL)]
-    for col_name, data in zip(cols, col_data):
-        if col_name in langs:
-            cognate_dict[col_name] = latin.translate(data)
-    cs = CognateSet(id=id,
-                    concept=concept,
-                    ancestor='latin',
-                    cognate_dict=cognate_dict,
-                    alphabet=latin,
-                    pad_to=20)
-    print(cs)
-    cognate_sets.append(cs)
