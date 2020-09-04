@@ -1,0 +1,6 @@
+.idea/*
+example/*
+latex/*
+data/*
+.old/*
+*__pycache__*
