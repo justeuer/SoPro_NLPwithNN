@@ -116,6 +116,7 @@ def main():
                         pad_to=pad_to)
         cognate_sets.append(cs)
 
+
     split_index = int(valid_size * len(cognate_sets))
     train_data = cognate_sets[:split_index]
     valid_data = cognate_sets[split_index:]
@@ -140,22 +141,21 @@ def main():
                     target = tf.dtypes.cast(target, tf.float32)
                     #iterate through the embeddings
                     for lang, embedding in char_embedding.items():
-                        #add a dimension to the the embeddings
-                        data = tf.keras.backend.expand_dims(embedding.to_numpy(), axis=0)
-                        #print(data.shape)
-                        output = model(data)
-                        #print(target)
-                        #print(output)
-                        #calculate the loss
-                        loss = loss_object(target, output)
-                        epoch_loss.append(float(loss))
-                        batch_loss.append(float(loss))
-                        #calculate the gradients
-                        gradients = tape.gradient(loss, model.non_trainable_weights)
-                        #backpropagate
-                        optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                        #evaluate using Cosine Similarity
-                        output_word += vector_to_char(output, alphabet)
+                        for i in range(0, len(lang), 5):
+                            #add a dimension to the the embeddings
+                            data = tf.keras.backend.expand_dims(embedding.to_numpy(), axis=0)
+                            output = model(data)
+                            #calculate the loss
+                            loss = loss_object(target, output)
+                            epoch_loss.append(float(loss))
+                            batch_loss.append(float(loss))
+                            #calculate the gradients
+                            gradients = tape.gradient(loss, model.non_trainable_weights)
+                            #backpropagate
+                            optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+                            #evaluate using Cosine Similarity
+                            output_word += vector_to_char(output, alphabet)
+                        
             print("Reconstructed word={}".format(output_word))
             print("Batch {}, loss={}".format(i, np.mean(batch_loss)))
         print("Epoch {}, loss={}".format(epoch, np.mean(epoch_loss)))
