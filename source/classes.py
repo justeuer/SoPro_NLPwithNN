@@ -252,7 +252,9 @@ class Alphabet(object):
         cos_sims = {}
         for c, feature_vector in self._dict.items():
             cos_sims[c] = cos_sim(vec, feature_vector)
-
+        
+       # print("get char output")
+       # print(max(cos_sims, key=cos_sims.get))
         return max(cos_sims, key=cos_sims.get)
         #for char, ve in self._dict
 
