@@ -1,9 +1,14 @@
 import pandas as pd
 from pathlib import Path
 import numpy as np
+from numpy.linalg import norm
 from tensorflow import keras
 import re
 from typing import Dict, List
+
+
+def cos_sim(x: np.array, y: np.array):
+    return np.dot(x, y) / (norm(x) * norm(y))
 
 
 class Char(object):
@@ -67,6 +72,7 @@ class Word(object):
 
 class Alphabet(object):
     """ Class that manages the translation of cognate sets into vector arrays """
+    # TODO: put re patterns in a file and load them
     match_long_vowel = re.compile(r"^[aɑɐeəɨiɪoɔœɒuʊɛyʏø]ː")
     match_nasal_vowel = re.compile(
         r"^[aɐeiwoɨuɑɔɛ]̃")  # not the best way to do it (nasal tilde not visible, use unicode instead?
@@ -77,24 +83,27 @@ class Alphabet(object):
     def __init__(self,
                  csv: Path,
                  encoding='utf-16',
-                 start_symbol="<start>",
-                 stop_symbol="<stop>",
+                 #start_symbol="<start>",
+                 #stop_symbol="<stop>",
                  pad_symbol="<pad>",
                  empty_symnol="-",
                  header_row=0,
-                 chars_col=0):
+                 chars_col=0,
+                 encoding_features=True):
         self._features = []
         self._alphabet = []
         self._dict = {}
-        self.start_symbol = start_symbol
-        self.stop_symbol = stop_symbol
+        #self.start_symbol = start_symbol
+        #self.stop_symbol = stop_symbol
         self.pad_symbol = pad_symbol
         self.empty_symbol = empty_symnol
         self.header_row = header_row
         self.chars_col = chars_col
         self.encoding = encoding
+        self.encoding_features = encoding_features
         self._load(csv, encoding=self.encoding)
-        self._char_embeddings = self.create_char_embeddings()
+        if self.encoding_features:
+            self._char_embeddings = self.create_char_embeddings()
 
     def create_char_embeddings(self):
         """
@@ -126,6 +135,15 @@ class Alphabet(object):
         pass
 
     def get_char_embeddings(self):
+        """
+        Helper method to acces the char embeddings
+        Returns
+            The char embeddings derived during setup, Warning if the alphabet does not code for features
+        -------
+
+        """
+        if self.encoding_features:
+            raise Warning("Not encoding for features, use classes.Char.get_feature_vector instead")
         return self._char_embeddings
 
     def translate(self, word: str):
@@ -141,9 +159,9 @@ class Alphabet(object):
 
         """
         chars_ = []
-        chars_.append(self.start_symbol)
+        #chars_.append(self.start_symbol)
         self._find_chars(word, chars_)
-        chars_.append(self.stop_symbol)
+        #chars_.append(self.stop_symbol)
         chars = [self.create_char(char_) for char_ in chars_]
         return Word(chars)
 
@@ -194,8 +212,9 @@ class Alphabet(object):
         for row in rows[self.header_row + 1:]:
             if row != "":
                 cols = row.split(",")
-                assert len(cols) - 1 == len(self._features), \
-                    "Not enough features found, expected {}, got {}".format(len(self._features), len(cols))
+                if self.encoding_features:
+                    assert len(cols) - 1 == len(self._features), \
+                        "Not enough features found, expected {}, got {}".format(len(self._features), len(cols))
                 char = cols[self.chars_col]
                 self._alphabet.append(char)
                 vec = []
@@ -206,7 +225,7 @@ class Alphabet(object):
 
     def create_char(self, char: str):
         """
-        Creates a classes.Characters.Character object from a string
+        Creates a Char object from a string
         Parameters
         ----------
         char
@@ -217,6 +236,27 @@ class Alphabet(object):
         """
         assert char in self._alphabet, "Unknown character '{}'".format(char)
         return Char(char, self._features, self._dict[char])
+
+    def get_char_by_feature_vector(self, vec: np.array):
+        """
+        Finds the character whose feature vector/embedding is closest to the input vector.
+        Atm we use cosine similarity to do the matching
+        Parameters
+        ----------
+        vec
+            The numpy array representing the char
+        Returns
+            A char object corresponding to the feature vector
+        -------
+        """
+        cos_sims = {}
+        for c, feature_vector in self._dict.items():
+            cos_sims[c] = cos_sim(vec, feature_vector)
+        
+       # print("get char output")
+        #print(max(cos_sims, key=cos_sims.get))
+        return max(cos_sims, key=cos_sims.get)
+        #for char, ve in self._dict
 
     def __str__(self):
         s = "*** ASJP alphabet class ***\n"
@@ -245,9 +285,14 @@ class CognateSet(object):
         self.concept = concept
         self.alphabet = alphabet
         self.ancestor = ancestor
-        self.pad_to = pad_to
+        self.pad_to = max([len(word) for word in cognate_dict.values()])
         self.cognate_dict = {lang: self._pad(word) for lang, word in cognate_dict.items()}
 
+    
+
+    def get_ancestor(self):
+        return self.cognate_dict[self.ancestor]
+        
     def _pad(self, word: Word):
         for i in range(len(word), self.pad_to):
             word.get_chars().append(self.alphabet.create_char(self.alphabet.pad_symbol))
@@ -264,9 +309,9 @@ class CognateSet(object):
         s = 5*"=" + " Cognate Set {} ".format(self.id) + 5*"=" + "\n"
         s += "concept: {}\n".format(self.concept)
         s += "ancestor: {}\n".format(self.ancestor)
-        for li, lang in enumerate(self.cognate_dict.keys()):
+        for li, (lang, word) in enumerate(self.cognate_dict.items()):
             if lang != self.ancestor:
-                s += "lang {}: {}\n".format(li, lang)
+                s += "lang {}: {} {}\n".format(li, lang, word)
         s += "pad_to: {}\n".format(self.pad_to)
         return s
 
@@ -353,3 +398,8 @@ if __name__ == '__main__':
         print("descendants")
         print(datapoint)
     print(cs)
+
+    char = asjp.create_char("p")
+    print(char)
+    print(char.get_feature_vector())
+    print(asjp.get_char_by_feature_vector(char.get_feature_vector()))
