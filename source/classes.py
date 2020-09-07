@@ -83,8 +83,8 @@ class Alphabet(object):
     def __init__(self,
                  csv: Path,
                  encoding='utf-16',
-                 start_symbol="<start>",
-                 stop_symbol="<stop>",
+                 #start_symbol="<start>",
+                 #stop_symbol="<stop>",
                  pad_symbol="<pad>",
                  empty_symnol="-",
                  header_row=0,
@@ -93,8 +93,8 @@ class Alphabet(object):
         self._features = []
         self._alphabet = []
         self._dict = {}
-        self.start_symbol = start_symbol
-        self.stop_symbol = stop_symbol
+        #self.start_symbol = start_symbol
+        #self.stop_symbol = stop_symbol
         self.pad_symbol = pad_symbol
         self.empty_symbol = empty_symnol
         self.header_row = header_row
@@ -159,9 +159,9 @@ class Alphabet(object):
 
         """
         chars_ = []
-        chars_.append(self.start_symbol)
+        #chars_.append(self.start_symbol)
         self._find_chars(word, chars_)
-        chars_.append(self.stop_symbol)
+        #chars_.append(self.stop_symbol)
         chars = [self.create_char(char_) for char_ in chars_]
         return Word(chars)
 
@@ -254,7 +254,7 @@ class Alphabet(object):
             cos_sims[c] = cos_sim(vec, feature_vector)
         
        # print("get char output")
-       # print(max(cos_sims, key=cos_sims.get))
+        #print(max(cos_sims, key=cos_sims.get))
         return max(cos_sims, key=cos_sims.get)
         #for char, ve in self._dict
 
@@ -285,9 +285,14 @@ class CognateSet(object):
         self.concept = concept
         self.alphabet = alphabet
         self.ancestor = ancestor
-        self.pad_to = pad_to
+        self.pad_to = max([len(word) for word in cognate_dict.values()])
         self.cognate_dict = {lang: self._pad(word) for lang, word in cognate_dict.items()}
 
+    
+
+    def get_ancestor(self):
+        return self.cognate_dict[self.ancestor]
+        
     def _pad(self, word: Word):
         for i in range(len(word), self.pad_to):
             word.get_chars().append(self.alphabet.create_char(self.alphabet.pad_symbol))
@@ -304,9 +309,9 @@ class CognateSet(object):
         s = 5*"=" + " Cognate Set {} ".format(self.id) + 5*"=" + "\n"
         s += "concept: {}\n".format(self.concept)
         s += "ancestor: {}\n".format(self.ancestor)
-        for li, lang in enumerate(self.cognate_dict.keys()):
+        for li, (lang, word) in enumerate(self.cognate_dict.items()):
             if lang != self.ancestor:
-                s += "lang {}: {}\n".format(li, lang)
+                s += "lang {}: {} {}\n".format(li, lang, word)
         s += "pad_to: {}\n".format(self.pad_to)
         return s
 
