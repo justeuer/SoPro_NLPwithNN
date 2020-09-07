@@ -62,6 +62,8 @@ model = keras.Sequential([
 #model.add(layers.Flatten())
 
 #model.summary()
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
 
 
 HEADER_ROW = 0
@@ -77,18 +79,30 @@ vocab_input_size = 27
 #decoder = Decoder(vocab_input_size, embedding_dim, decoded_units=10, batch_size=BATCH_SIZE)
 
 optimizer = tf.keras.optimizers.SGD()
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
 #loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')
 loss_object = tf.keras.losses.CosineSimilarity()
 
-model.compile(loss="cosine_similarity", optimizer=optimizer)
 #model.compile(loss="mean_squared_error", optimizer=optimizer)
+#model.compile(loss="mean_squared_error", optimizer=optimizer)
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
 models = ['asjp', 'ipa', 'latin']
 
 valid_size = 0.8
 batch_size = 1
+<<<<<<< HEAD
 pad_to = 10  # also vocab size
 
 output_characters = []
+=======
+
+pad_to = 10  # also vocab size
+
+output_characters = []
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
 
 
 def parser_args():
@@ -96,6 +110,8 @@ def parser_args():
     parser.add_argument("--data", type=str, default="../data/romance_ipa_full.csv",
                         help="file containing the cognate sets")
     parser.add_argument("--model", type=str, default="../data/alphabets/ipa.csv",
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
                         help="file containing the character embeddings")
     parser.add_argument("--epochs", type=int, default=10, help="number of epochs")
     parser.add_argument("--model", type=str, default='latin', help="the model to be trained")
@@ -115,6 +131,8 @@ def main():
     alphabet_file = Path(args.alphabet)
     assert alphabet_file.exists() and alphabet_file.is_file(), "Alphabet file {} does not exist".format(alphabet_file)
     alphabet = Alphabet(alphabet_file, encoding='utf-16')
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
     assert isinstance(args.epochs, int), "Epochs not int, but {}".format(type(args.epochs))
     assert args.epochs > 0, "Epochs out of range: {}".format(args.epochs)
     epochs = args.epochs
@@ -140,6 +158,8 @@ def main():
 
     for li, line in enumerate(data[HEADER_ROW:]):
         if line == "" or li % 2 != 0:
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
             continue
         row_split = line.split(COLUMN_SEPARATOR)
         id = row_split[ID_COLUMN]
@@ -152,8 +172,9 @@ def main():
         cs = CognateSet(id=id, concept=concept, ancestor='latin', cognate_dict=cognate_dict, alphabet=alphabet,
                         pad_to=pad_to)
         cognate_sets.append(cs)
-    
 
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
 
     split_index = int(valid_size * len(cognate_sets))
     train_data = cognate_sets[:split_index]
@@ -177,6 +198,8 @@ def main():
                    # print(j)
                    # print("char embedding")
                    # print(char_embedding)
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
                     #add a dimension to the latin character embedding (ancestor embedding)
                     #we add a dimension because we use a batch size of 1 and TensorFlow does not
                     #automatically insert the batch size dimension
@@ -192,6 +215,8 @@ def main():
                         #add a dimension to the the embeddings
                         data = tf.keras.backend.expand_dims(embedding.to_numpy(), axis=0)
                         output = model(data)
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
                         #calculate the loss
                         loss = loss_object(target, output)
                         epoch_loss.append(float(loss))
@@ -220,6 +245,8 @@ def main():
                 output_characters.clear()     
                 print("Batch {}, loss={}".format(i, np.mean(batch_loss)))
                 print("Epoch {}, loss={}".format(epoch, np.mean(epoch_loss)))
+>>>>>>> 14044efecef78889d7560cf204e25e0bbc20a2a4
+>>>>>>> c9e69b93dd95d17322b10e94a2e1e9ea409c41e9
 
 
 
