@@ -15,19 +15,53 @@ from classes import Alphabet, CognateSet
 #from source.net.model import Encoder, Decoder
 #from source.net.train import loss_function, train_step
 
+#set the weights to initialize to the same weight each time
+tf.random.set_seed(seed=666)
 
-model:keras.Sequential = keras.Sequential()
+def build_model(input_dim, embedding_dim, lstm_dim, output_dim, langs):
+    input_layers = []
+    lstm_layers = []
+    for lang in langs:
+        #print("lang")
+        #print(lang)
+        input_layer = tf.keras.Input(shape = (1,27), name=lang)
+        #print("input_layer")
+        #print(input_layer)
+        lstm_layers.append(tf.keras.layers.LSTM(lstm_dim)(input_layer))
+        #print("lstm layer")
+        #print(lstm_layers)
+        input_layers.append(input_layer)
+
+    output = tf.keras.layers.concatenate(lstm_layers, axis=1)
+    output = tf.keras.layers.Dense(output_dim, activation='relu', name='output')(output)
+    model = tf.keras.models.Model(input_layers, [output])
+
+    optimizer = tf.keras.optimizers.Adam()
+    model.compile(loss='cosine-similarity', optimizer=optimizer)
+    return model, optimizer
+
+#langs = ['italian', 'spanish', 'french', 'portuguese', 'romanian']
+#trial_model = build_model(input_dim=27, embedding_dim=100, lstm_dim=32, output_dim=100, langs=langs)
+#model, optimizer = trial_model
+#print(model, optimizer)
+
+model = keras.Sequential([
+    layers.Embedding(input_dim=28, output_dim=100),
+    layers.SimpleRNN(32), layers.Dense(28)])
+
 # Add an Embedding layer expecting input vocab of size 1000, and
 # output embedding dimension of size 64.
-model.add(layers.Embedding(input_dim=27, output_dim=10))
+#model.add(layers.Embedding(input_dim=27, output_dim=100))
 
 # Add a LSTM layer with 128 internal units.
-model.add(layers.LSTM(32))
+#model.add(layers.SimpleRNN(32))
 
 # Add a Dense layer with 10 units.
-model.add(layers.Dense(27))
+#model.add(layers.Dense(27))
 
-model.summary()
+#model.add(layers.Flatten())
+
+#model.summary()
 
 
 HEADER_ROW = 0
@@ -42,23 +76,26 @@ vocab_input_size = 27
 #encoder = Encoder(vocab_input_size, embedding_dim, encoded_units=10, batch_size=BATCH_SIZE)
 #decoder = Decoder(vocab_input_size, embedding_dim, decoded_units=10, batch_size=BATCH_SIZE)
 
-optimizer = tf.keras.optimizers.Adam()
+optimizer = tf.keras.optimizers.SGD()
 #loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')
 loss_object = tf.keras.losses.CosineSimilarity()
 
 model.compile(loss="cosine_similarity", optimizer=optimizer)
+#model.compile(loss="mean_squared_error", optimizer=optimizer)
 models = ['asjp', 'ipa', 'latin']
 
 valid_size = 0.8
 batch_size = 1
-pad_to = 6  # also vocab size
+pad_to = 10  # also vocab size
+
+output_characters = []
 
 
 def parser_args():
     parser = ArgumentParser()
-    parser.add_argument("--data", type=str, default="../data/romance_asjp_full.csv",
+    parser.add_argument("--data", type=str, default="../data/romance_ipa_full.csv",
                         help="file containing the cognate sets")
-    parser.add_argument("--alphabet", type=str, default="../data/alphabets/asjp.csv",
+    parser.add_argument("--model", type=str, default="../data/alphabets/ipa.csv",
                         help="file containing the character embeddings")
     parser.add_argument("--epochs", type=int, default=10, help="number of epochs")
     parser.add_argument("--model", type=str, default='latin', help="the model to be trained")
@@ -77,7 +114,7 @@ def main():
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     alphabet_file = Path(args.alphabet)
     assert alphabet_file.exists() and alphabet_file.is_file(), "Alphabet file {} does not exist".format(alphabet_file)
-    alphabet = Alphabet(alphabet_file, encoding='ascii')
+    alphabet = Alphabet(alphabet_file, encoding='utf-16')
     assert isinstance(args.epochs, int), "Epochs not int, but {}".format(type(args.epochs))
     assert args.epochs > 0, "Epochs out of range: {}".format(args.epochs)
     epochs = args.epochs
@@ -102,7 +139,7 @@ def main():
     langs = cols[2:]
 
     for li, line in enumerate(data[HEADER_ROW:]):
-        if line == "" or li % 2 == 0:
+        if line == "" or li % 2 != 0:
             continue
         row_split = line.split(COLUMN_SEPARATOR)
         id = row_split[ID_COLUMN]
@@ -115,6 +152,7 @@ def main():
         cs = CognateSet(id=id, concept=concept, ancestor='latin', cognate_dict=cognate_dict, alphabet=alphabet,
                         pad_to=pad_to)
         cognate_sets.append(cs)
+    
 
 
     split_index = int(valid_size * len(cognate_sets))
@@ -123,16 +161,22 @@ def main():
     print("train size: {}".format(len(train_data)))
     print("valid size: {}".format(len(valid_data)))
 
+
     for epoch in range(epochs):
         epoch_loss = []
-        #iterate over the cognate sets
-        for i, cs in enumerate(train_data):
-            batch_loss = []
-            #initialize the GradientTape
-            with tf.GradientTape(persistent=True) as tape:
+        #initialize the GradientTape
+        with tf.GradientTape(persistent=True) as tape:
+            #iterate over the cognate sets
+            for i, cs in enumerate(train_data):
+                #print("cognate sets")
+                print(cs)
+                batch_loss = []
                 #iterate over the character embeddings
-                output_word = ""
                 for j, char_embedding in enumerate(cs):
+                   # print("j")
+                   # print(j)
+                   # print("char embedding")
+                   # print(char_embedding)
                     #add a dimension to the latin character embedding (ancestor embedding)
                     #we add a dimension because we use a batch size of 1 and TensorFlow does not
                     #automatically insert the batch size dimension
@@ -141,24 +185,41 @@ def main():
                     target = tf.dtypes.cast(target, tf.float32)
                     #iterate through the embeddings
                     for lang, embedding in char_embedding.items():
-                        for i in range(0, len(lang), 5):
-                            #add a dimension to the the embeddings
-                            data = tf.keras.backend.expand_dims(embedding.to_numpy(), axis=0)
-                            output = model(data)
-                            #calculate the loss
-                            loss = loss_object(target, output)
-                            epoch_loss.append(float(loss))
-                            batch_loss.append(float(loss))
-                            #calculate the gradients
-                            gradients = tape.gradient(loss, model.non_trainable_weights)
-                            #backpropagate
-                            optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                            #evaluate using Cosine Similarity
-                            output_word += vector_to_char(output, alphabet)
-                        
-            print("Reconstructed word={}".format(output_word))
-            print("Batch {}, loss={}".format(i, np.mean(batch_loss)))
-        print("Epoch {}, loss={}".format(epoch, np.mean(epoch_loss)))
+                      # print("lang")
+                       # print(lang)
+                        #print("embeddding")
+                        #print(embedding)
+                        #add a dimension to the the embeddings
+                        data = tf.keras.backend.expand_dims(embedding.to_numpy(), axis=0)
+                        output = model(data)
+                        #calculate the loss
+                        loss = loss_object(target, output)
+                        epoch_loss.append(float(loss))
+                        batch_loss.append(float(loss))
+                        #calculate the gradients
+                        gradients = tape.gradient(loss, model.trainable_weights)
+                        #backpropagate
+                        optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+                    #print("output")
+                    #print(output)
+                    #convert the character vector into a character 
+                    output_word = " "
+                    output_word += vector_to_char(output, alphabet)
+                    #print("output word")
+                    #print(output_word)
+                    #append the converted vectors to a list so we can see the reconstructed word
+                    output_characters.append(output_word)
+                   # print("output characters")
+                   # print(output_characters)
+                    #reset the output word string so we can create another reconstructed word
+                    output_word = None
+                #get the reconstructed word
+                print("Reconstructed word={}".format(output_characters))
+                print("Latin word: {}".format(cs.get_ancestor()))
+                #clear the list of output characters so we can create another word
+                output_characters.clear()     
+                print("Batch {}, loss={}".format(i, np.mean(batch_loss)))
+                print("Epoch {}, loss={}".format(epoch, np.mean(epoch_loss)))
 
 
 
