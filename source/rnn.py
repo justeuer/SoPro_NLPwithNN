@@ -86,11 +86,9 @@ models = ['asjp', 'ipa', 'latin']
 
 valid_size = 0.8
 batch_size = 1
-<<<<<<< HEAD
 pad_to = 10  # also vocab size
 
 output_characters = []
-=======
 
 pad_to = 10  # also vocab size
 
