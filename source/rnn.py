@@ -12,6 +12,11 @@ import sys
 from classes import Alphabet, CognateSet, LevenshteinDistance
 from utils import create_model
 
+# create output dir
+out_dir = Path("../data/out")
+if not out_dir.exists():
+    out_dir.mkdir()
+
 # set random seed for weights
 tf.random.set_seed(seed=42)
 encoding = None
@@ -90,8 +95,8 @@ def main():
 
     # initialize model
     model, optimizer, loss_object = create_model(input_dim=alphabet.get_feature_dim(),
-                                                 embedding_dim=100,
-                                                 context_dim=32,
+                                                 embedding_dim=28,
+                                                 context_dim=128,
                                                  output_dim=alphabet.get_feature_dim())
 
     model.summary()
