@@ -347,7 +347,7 @@ class Asjp2Ipa(object):
 
 
 class LevenshteinDistance(object):
-
+    """ Uses the edit_distance function (levenshtein distance) to calculate our scores """
     def __init__(self,
                  true: List[str],
                  pred: List[str],
@@ -379,7 +379,7 @@ class LevenshteinDistance(object):
 
         return percentiles
 
-    def plot_distances(self):
+    def plot_distances(self, path: Path):
         data = Counter(self.distances)
         x = list(data.keys())
         x = [str(i) for i in x]
@@ -388,14 +388,14 @@ class LevenshteinDistance(object):
         plt.bar(x, y)
         plt.ylabel("Counts")
         plt.xlabel("Distances")
-        plt.show()
+        plt.savefig(path.absolute())
 
     def print_distances(self):
         print("Distances")
-        for d, count in Counter(self.distances):
+        for d, count in Counter(self.distances).items():
             print("Distance={}: {}".format(d, count))
 
-    def plot_percentiles(self):
+    def plot_percentiles(self, path: Path):
         x = list(self.percentiles.keys())
         x = ["d <= " + str(i) for i in x]
         y = list(self.percentiles.values())
@@ -403,7 +403,7 @@ class LevenshteinDistance(object):
         plt.bar(x, y)
         plt.xlabel("Distances")
         plt.ylabel("Percentiles")
-        plt.show()
+        plt.savefig(path.absolute())
 
     def print_percentiles(self):
         print("Percentiles")

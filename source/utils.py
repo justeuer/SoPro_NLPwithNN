@@ -9,7 +9,7 @@ def create_model(input_dim, embedding_dim, context_dim, output_dim):
     model.add(layers.Embedding(input_dim=input_dim, output_dim=embedding_dim))
     model.add(layers.SimpleRNN(context_dim))
     model.add(layers.Dense(output_dim))
-    optimizer = tf.keras.optimizers.SGD()
+    optimizer = tf.keras.optimizers.SGD(learning_rate=0.001)
     loss_object = tf.keras.losses.CosineSimilarity()
     model.compile(loss="cosine_similarity", optimizer=optimizer)
     return model, optimizer, loss_object

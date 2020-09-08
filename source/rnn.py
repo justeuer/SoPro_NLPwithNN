@@ -131,63 +131,78 @@ def main():
                         alphabet=alphabet)
         cognate_sets.append(cs)
 
-    split_index = int(valid_size * len(cognate_sets))
-    train_data = cognate_sets[:split_index]
-    valid_data = cognate_sets[split_index:]
-    print("train size: {}".format(len(train_data)))
-    print("valid size: {}".format(len(valid_data)))
+    # maybe we needn't do the evaluation, since we mainly want to know how
+    # the model behaves with the different inputs
+
+    #split_index = int(valid_size * len(cognate_sets))
+    #train_data = cognate_sets[:split_index]
+    #valid_data = cognate_sets[split_index:]
+    #print("train size: {}".format(len(train_data)))
+    #print("valid size: {}".format(len(valid_data)))
+    #cognate_sets = cognate_sets[10:30]
 
     words_true = []
     words_pred = []
+    epoch_losses = []
+    batch_losses = []
 
     for epoch in range(epochs):
-        epoch_loss = []
-        # initialize the GradientTape
-        with tf.GradientTape(persistent=True) as tape:
-            # iterate over the cognate sets
-            for i, cs in enumerate(train_data):
-                batch_loss = []
-                # iterate over the character embeddings
-                for j, char_embedding in enumerate(cs):
-                    # add a dimension to the latin character embedding (ancestor embedding)
-                    # we add a dimension because we use a batch size of 1 and TensorFlow does not
-                    # automatically insert the batch size dimension
-                    target = tf.keras.backend.expand_dims(char_embedding.pop(cs.ancestor).to_numpy(), axis=0)
-                    # convert the latin character embedding to float32 to match the dtype of the output (line 137)
-                    target = tf.dtypes.cast(target, tf.float32)
-                    # iterate through the embeddings
-                    for lang, embedding in char_embedding.items():
+        # reset lists
+        epoch_losses.clear()
+        words_true.clear()
+        words_pred.clear()
+        # iterate over the cognate sets
+        for i, cs in enumerate(cognate_sets):
+            # reset batch loss
+            batch_losses.clear()
+            # iterate over the character embeddings
+            for j, char_embeddings in enumerate(cs):
+                # add a dimension to the latin character embedding (ancestor embedding)
+                # we add a dimension because we use a batch size of 1 and TensorFlow does not
+                # automatically insert the batch size dimension
+                target = tf.keras.backend.expand_dims(char_embeddings.pop(cs.ancestor).to_numpy(), axis=0)
+                # convert the latin character embedding to float32 to match the dtype of the output (line 137)
+                target = tf.dtypes.cast(target, tf.float32)
+                # iterate through the embeddings
+                # initialize the GradientTape
+                with tf.GradientTape(persistent=True) as tape:
+                    for lang, embedding in char_embeddings.items():
                         # add a dimension to the the embeddings
                         data = tf.keras.backend.expand_dims(embedding.to_numpy(), axis=0)
                         output = model(data)
                         # calculate the loss
                         loss = loss_object(target, output)
-                        epoch_loss.append(float(loss))
-                        batch_loss.append(float(loss))
+                        epoch_losses.append(float(loss))
+                        batch_losses.append(float(loss))
                         # calculate the gradients
                         gradients = tape.gradient(loss, model.trainable_weights)
                         # backpropagate
                         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                    # convert the character vector into a character
+                        # convert the character vector into a character
                     output_char = alphabet.get_char_by_feature_vector(output)
                     # append the converted vectors to a list so we can see the reconstructed word
                     output_characters.append(output_char)
-                # append the reconstructed word and the ancestor to the true/pred lists
-                print("".join(output_characters))
-                print(str(cs.get_ancestor()))
-                words_pred.append("".join(output_characters))
-                words_true.append(str(cs.get_ancestor()))
-                # clear the list of output characters so we can create another word
-                output_characters.clear()
-                print("Batch {}, loss={}".format(i, np.mean(batch_loss)))
-
+            # append the reconstructed word and the ancestor to the true/pred lists
+            words_pred.append("".join(output_characters))
+            words_true.append(str(cs.get_ancestor()))
+            # clear the list of output characters so we can create another word
+            output_characters.clear()
+            print("Batch {}, mean loss={}".format(i, np.mean(batch_losses)))
         # calculate distances
         ld = LevenshteinDistance(true=words_true,
                                  pred=words_pred)
         print("Epoch {} finished".format(epoch + 1))
-        print("Epoch loss={}".format(epoch, np.mean(epoch_loss)))
+        print("Mean loss={}".format(epoch, np.mean(epoch_losses)))
         ld.print_distances()
         ld.print_percentiles()
+
+    # do so again after training has finished, but now also save the plots
+    ld = LevenshteinDistance(true=words_true,
+                             pred=words_pred)
+    ld.print_distances()
+    ld.print_percentiles()
+    ld.plot_distances(Path("../data/out/distances.png"))
+    ld.plot_percentiles(Path("../data/out/percentiles.png"))
 
 
 if __name__ == '__main__':
