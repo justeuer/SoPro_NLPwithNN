@@ -9,9 +9,7 @@ from collections import Counter
 from matplotlib import pyplot as plt
 import nltk
 
-
-def cos_sim(x: np.array, y: np.array):
-    return np.dot(x, y) / (norm(x) * norm(y))
+from utils import cos_sim
 
 
 class Char(object):
@@ -86,27 +84,23 @@ class Alphabet(object):
     def __init__(self,
                  csv: Path,
                  encoding='utf-16',
-                 #start_symbol="<start>",
-                 #stop_symbol="<stop>",
                  pad_symbol="<pad>",
                  empty_symnol="-",
                  header_row=0,
                  chars_col=0,
-                 encoding_features=True):
+                 orthographic=False):
         self._features = []
         self._alphabet = []
         self._dict = {}
-        #self.start_symbol = start_symbol
-        #self.stop_symbol = stop_symbol
         self.pad_symbol = pad_symbol
         self.empty_symbol = empty_symnol
         self.header_row = header_row
         self.chars_col = chars_col
         self.encoding = encoding
-        self.encoding_features = encoding_features
+        self.orthographic = orthographic
         self._load(csv, encoding=self.encoding)
-        if self.encoding_features:
-            self._char_embeddings = self.create_char_embeddings()
+        if self.orthographic:
+            self._dict = self.create_char_embeddings()
 
     def create_char_embeddings(self):
         """
@@ -124,31 +118,6 @@ class Alphabet(object):
             char_embeddings[char] = one_hot_vector
         return char_embeddings
 
-    def translate_and_align(self, cognates: Dict[str, str]):
-        """
-        Translates and aligns words in a cognate set into a classes.Word object
-        Parameters
-        ----------
-        cognates
-            A dictionary containing a cognate set, keys languages, values words
-        Returns
-            An Dict of [str, classes.Words.Word]
-        -------
-        """
-        pass
-
-    def get_char_embeddings(self):
-        """
-        Helper method to acces the char embeddings
-        Returns
-            The char embeddings derived during setup, Warning if the alphabet does not code for features
-        -------
-
-        """
-        if self.encoding_features:
-            raise Warning("Not encoding for features, use classes.Char.get_feature_vector instead")
-        return self._char_embeddings
-
     def translate(self, word: str):
         """
         Translates a single word into a classes.Word object
@@ -162,14 +131,11 @@ class Alphabet(object):
 
         """
         chars_ = []
-        #chars_.append(self.start_symbol)
         self._find_chars(word, chars_)
-        #chars_.append(self.stop_symbol)
         chars = [self.create_char(char_) for char_ in chars_]
         return Word(chars)
 
     def _find_chars(self, chunk: str, chars: List[str]):
-
         """
         Recursively parses an database entry, looking for '()' (phonological split) and '[]' (spurious morphemes).
         Parameters
@@ -215,7 +181,9 @@ class Alphabet(object):
         for row in rows[self.header_row + 1:]:
             if row != "":
                 cols = row.split(",")
-                if self.encoding_features:
+                # check if the number of features for a given character matches
+                # the total number of features
+                if self.orthographic:
                     assert len(cols) - 1 == len(self._features), \
                         "Not enough features found, expected {}, got {}".format(len(self._features), len(cols))
                 char = cols[self.chars_col]
@@ -224,7 +192,7 @@ class Alphabet(object):
                 for feature_val in cols[self.header_row + 1:]:
                     vec.append(int(feature_val))
                 self._dict[char] = vec
-        print(self._alphabet)
+        #print(self._alphabet)
 
     def create_char(self, char: str):
         """
@@ -256,10 +224,22 @@ class Alphabet(object):
         for c, feature_vector in self._dict.items():
             cos_sims[c] = cos_sim(vec, feature_vector)
         
-       # print("get char output")
-        #print(max(cos_sims, key=cos_sims.get))
         return max(cos_sims, key=cos_sims.get)
-        #for char, ve in self._dict
+
+    def get_feature_dim(self):
+        """
+        Determines the length of the feature set, i. e. the size of the input/output
+        representations of the net. If encoding for features the dimensionality is the
+        number of feaures, if only encoding characters it's the number of characters.
+        Returns
+            The number of features/characters
+        -------
+
+        """
+        if not self.orthographic:
+            return len(self._features)
+        else:
+            return len(self._alphabet)
 
     def __str__(self):
         s = "*** ASJP alphabet class ***\n"
@@ -282,8 +262,7 @@ class CognateSet(object):
                  concept: str,
                  ancestor: str,
                  cognate_dict: Dict[str, Word],
-                 alphabet: Alphabet,
-                 pad_to: int):
+                 alphabet: Alphabet):
         self.id = id
         self.concept = concept
         self.alphabet = alphabet
@@ -291,14 +270,12 @@ class CognateSet(object):
         self.pad_to = max([len(word) for word in cognate_dict.values()])
         self.cognate_dict = {lang: self._pad(word) for lang, word in cognate_dict.items()}
 
-    
-
     def get_ancestor(self):
         return self.cognate_dict[self.ancestor]
         
     def _pad(self, word: Word):
         for i in range(len(word), self.pad_to):
-            word.get_chars().append(self.alphabet.create_char(self.alphabet.pad_symbol))
+            word.get_chars().append(self.alphabet.create_char(self.alphabet.empty_symbol))
         return word
 
     def __iter__(self):
@@ -317,6 +294,9 @@ class CognateSet(object):
                 s += "lang {}: {} {}\n".format(li, lang, word)
         s += "pad_to: {}\n".format(self.pad_to)
         return s
+
+    def __len__(self):
+        return len(cognate_dict)
 
 
 class Asjp2Ipa(object):
@@ -365,6 +345,7 @@ class Asjp2Ipa(object):
 
         return s
 
+
 class LevenshteinDistance(object):
 
     def __init__(self,
@@ -382,7 +363,6 @@ class LevenshteinDistance(object):
         return min(distance, self.upper_bound)
 
     def _percentiles(self):
-        prev = 0
         data = Counter(self.distances)
         percentiles = {}
 
@@ -410,9 +390,12 @@ class LevenshteinDistance(object):
         plt.xlabel("Distances")
         plt.show()
 
+    def print_distances(self):
+        print("Distances")
+        for d, count in Counter(self.distances):
+            print("Distance={}: {}".format(d, count))
+
     def plot_percentiles(self):
-        print(Counter(self.distances))
-        print(self.percentiles)
         x = list(self.percentiles.keys())
         x = ["d <= " + str(i) for i in x]
         y = list(self.percentiles.values())
@@ -421,6 +404,12 @@ class LevenshteinDistance(object):
         plt.xlabel("Distances")
         plt.ylabel("Percentiles")
         plt.show()
+
+    def print_percentiles(self):
+        print("Percentiles")
+        for d, perc in self.percentiles.items():
+            print("Distance={}, {}".format(d, perc))
+
 
 if __name__ == '__main__':
     asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='utf-8')

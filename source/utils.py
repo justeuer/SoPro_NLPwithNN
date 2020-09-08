@@ -4,15 +4,14 @@ import tensorflow as tf
 from tensorflow.keras import layers, Sequential
 
 
-def create_model(input_dim, embedding_dim, lstm_dim, output_dim):
+def create_model(input_dim, embedding_dim, context_dim, output_dim):
     model = Sequential()
     model.add(layers.Embedding(input_dim=input_dim, output_dim=embedding_dim))
-    model.add(layers.LSTM(lstm_dim))
+    model.add(layers.SimpleRNN(context_dim))
     model.add(layers.Dense(output_dim))
-    optimizer = tf.keras.optimizers.Adam()
+    optimizer = tf.keras.optimizers.SGD()
     loss_object = tf.keras.losses.CosineSimilarity()
     model.compile(loss="cosine_similarity", optimizer=optimizer)
-
     return model, optimizer, loss_object
 
 
