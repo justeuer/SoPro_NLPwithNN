@@ -1,70 +1,37 @@
-from collections import Counter
-from matplotlib import pyplot as plt
-import nltk
-from typing import List
+import numpy as np
+from numpy.linalg import norm
+import tensorflow as tf
+from tensorflow.keras import layers, Sequential
 
 
-class LevenshteinDistance(object):
+def create_model(input_dim, embedding_dim, lstm_dim, output_dim):
+    model = Sequential()
+    model.add(layers.Embedding(input_dim=input_dim, output_dim=embedding_dim))
+    model.add(layers.LSTM(lstm_dim))
+    model.add(layers.Dense(output_dim))
+    optimizer = tf.keras.optimizers.Adam()
+    loss_object = tf.keras.losses.CosineSimilarity()
+    model.compile(loss="cosine_similarity", optimizer=optimizer)
 
-    def __init__(self,
-                 true: List[str],
-                 pred: List[str],
-                 upper_bound=5):
-        self.true = true
-        self.pred = pred
-        self.upper_bound = upper_bound
-        self.distances = sorted([self._levenshtein(t, p) for t, p in zip(true, pred)], reverse=True)
-        self.percentiles = self._percentiles()
-
-    def _levenshtein(self, t: str, p: str):
-        distance = nltk.edit_distance(t, p)
-        return min(distance, self.upper_bound)
-
-    def _percentiles(self):
-        prev = 0
-        data = Counter(self.distances)
-        percentiles = {}
-
-        # add up percentiles
-        for distance, count in data.items():
-            for percentile in percentiles:
-                #if percentile > prev:
-                percentiles[percentile] += count
-            percentiles[distance] = count
-            prev = distance
-
-        # divide by total number of distances
-        percentiles = {percentile: count/len(self.distances) for percentile, count in percentiles.items()}
-
-        return percentiles
-
-    def plot_distances(self):
-        data = Counter(self.distances)
-        x = list(data.keys())
-        x = [str(i) for i in x]
-        y = list(data.values())
-        plt.figure()
-        plt.bar(x, y)
-        plt.ylabel("Counts")
-        plt.xlabel("Distances")
-        plt.show()
-
-    def plot_percentiles(self):
-        print(Counter(self.distances))
-        print(self.percentiles)
-        x = list(self.percentiles.keys())
-        x = ["d <= " + str(i) for i in x]
-        y = list(self.percentiles.values())
-        plt.figure()
-        plt.bar(x, y)
-        plt.xlabel("Distances")
-        plt.ylabel("Percentiles")
-        plt.show()
+    return model, optimizer, loss_object
 
 
-if __name__ == '__main__':
-    lst1 = ["matrem", "patrem", "filium", "filia", "soror"]
-    lst2 = ["matre", "patri", "fillo", "filla", "sor"]
-    ld = LevenshteinDistance(lst1, lst2)
-    ld.plot_distances()
-    ld.plot_percentiles()
+def cos_sim(x: np.array, y: np.array):
+    return np.dot(x, y) / (norm(x) * norm(y))
+
+
+def build_model(input_dim, embedding_dim, lstm_dim, output_dim, langs):
+    input_layers = []
+    lstm_layers = []
+    for lang in langs:
+        input_layer = tf.keras.layers.Embedding(input_dim=input_dim, output_dim=embedding_dim, name=lang)
+        lstm_layers.append(tf.keras.layers.LSTM(lstm_dim, return_sequences=False)(input_layer))
+        input_layers.append(input_layer)
+
+    output = tf.keras.layers.concatenate(inputs=lstm_layers, axis=1)
+    output = tf.keras.layers.Dense(output_dim, activation='relu', name='output')(output)
+    model = tf.keras.models.Model(inputs=input_layers, output=[output])
+
+    optimizer = tf.keras.optimizers.Adam()
+    model.compile(loss='cosine-similarity', optimizer=optimizer)
+    return model, optimizer
