@@ -99,8 +99,7 @@ class Alphabet(object):
         self.encoding = encoding
         self.orthographic = orthographic
         self._load(csv, encoding=self.encoding)
-        if self.orthographic:
-            self._dict = self.create_char_embeddings()
+        self._char_embeddings = self.create_char_embeddings()
 
     def create_char_embeddings(self):
         """
@@ -206,7 +205,10 @@ class Alphabet(object):
         -------
         """
         assert char in self._alphabet, "Unknown character '{}'".format(char)
-        return Char(char, self._features, self._dict[char])
+        if not self.orthographic:
+            return Char(char, self._features, self._dict[char])
+        else:
+            return Char(char, [], self._char_embeddings[char])
 
     def get_char_by_feature_vector(self, vec: np.array):
         """
@@ -215,7 +217,7 @@ class Alphabet(object):
         Parameters
         ----------
         vec
-            The numpy array representing the char
+            The numpy array representing the features of the char
         Returns
             A char object corresponding to the feature vector
         -------
@@ -226,34 +228,64 @@ class Alphabet(object):
         
         return max(cos_sims, key=cos_sims.get)
 
+    def get_char_by_embedding(self, vec: np.array):
+        """
+        Does the same as the method above, but for the one-hot-encoding
+        Parameters
+        ----------
+        vec
+            The numpy array representing the localist encoding of the car
+        Returns
+            A char object corresponding to the embedding
+        -------
+        """
+        cos_sims = {}
+        for c, feature_vector in self._char_embeddings.items():
+            cos_sims[c] = cos_sim(vec, feature_vector)
+
+        return max(cos_sims, key=cos_sims.get)
+
     def get_feature_dim(self):
         """
         Determines the length of the feature set, i. e. the size of the input/output
         representations of the net. If encoding for features the dimensionality is the
-        number of feaures, if only encoding characters it's the number of characters.
+        number of feaures.
         Returns
-            The number of features/characters
+            The number of features
         -------
 
         """
-        if not self.orthographic:
-            return len(self._features)
-        else:
-            return len(self._alphabet)
+        return len(self._features)
+
+    def get_embedding_dim(self):
+        """
+
+        Returns
+        -------
+
+        """
+        return len(self)
+
+    def get_char_embeddings(self):
+        return self._char_embeddings
 
     def __str__(self):
         s = "*** ASJP alphabet class ***\n"
-        for ci, (char, vector) in enumerate(self._dict.items()):
-            feature_vals = "{}\t{}\t(".format(ci, char)
-            for vi, val in enumerate(vector):
-                if int(val) == 1:
-                    feature_vals += " {} ".format(self._features[vi])
-            feature_vals += ")"
-            s += feature_vals + "\n"
+        if not self.orthographic:
+            for ci, (char, vector) in enumerate(self._dict.items()):
+                feature_vals = "{}\t{}\t(".format(ci, char)
+                for vi, val in enumerate(vector):
+                    if int(val) == 1:
+                        feature_vals += " {} ".format(self._features[vi])
+                feature_vals += ")"
+                s += feature_vals + "\n"
+        else:
+            for ci, char in enumerate(self._char_embeddings.keys()):
+                s += char + "\n"
         return s
 
     def __len__(self):
-        return len(self._dict)
+        return len(self._alphabet)
 
 
 class CognateSet(object):
@@ -436,8 +468,7 @@ if __name__ == '__main__':
                     concept="I",
                     ancestor='latin',
                     cognate_dict=cognate_dict,
-                    alphabet=asjp,
-                    pad_to=5)
+                    alphabet=asjp)
 
     for datapoint in cs:
         target = datapoint.pop(cs.ancestor)
