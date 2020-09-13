@@ -209,6 +209,7 @@ class Alphabet(object):
             return Char(char, self._features, self._dict[char])
         else:
             return Char(char, [], self._char_embeddings[char])
+        return None
 
     def get_char_by_feature_vector(self, vec: np.array):
         """
@@ -331,19 +332,19 @@ class CognateSet(object):
         return len(cognate_dict)
 
 
-class Asjp2Ipa(object):
+class Ipa2Asjp(object):
     def __init__(self,
                  sca,
                  ignored_symbols: List[str],
-                 start_symbol="<start>",
-                 stop_symbol="<stop>",
-                 pad_symbol="<pad>",
+                 #start_symbol="<start>",
+                 #stop_symbol="<stop>",
+                 #pad_symbol="<pad>",
                  empty_symbol="-"):
         self.sca = sca
         self.empty_symbol = empty_symbol
-        self.start_symbol = start_symbol
-        self.stop_symbol = stop_symbol
-        self.pad_symbol = pad_symbol
+        #self.start_symbol = start_symbol
+        #self.stop_symbol = stop_symbol
+        #self.pad_symbol = pad_symbol
         self.ignored_symbols = ignored_symbols
 
     def convert(self, chars: List[Char]):
@@ -354,8 +355,8 @@ class Asjp2Ipa(object):
                 s += self.empty_symbol
                 continue
             # ignore start and stop symbols
-            if char_ == self.start_symbol or char_ == self.stop_symbol:
-                continue
+            #if char_ == self.start_symbol or char_ == self.stop_symbol:
+            #    continue
             # lingpy doesn't convert nasal vowels
             if char.get_feature_val('nasal') == 1 and char.get_feature_val('stop') == 0:
                 char_ = char_.replace("ɐ̃", "ɐ"). \
