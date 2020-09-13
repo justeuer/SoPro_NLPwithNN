@@ -1,0 +1,140 @@
+Unaligned
+
+Context Dim at 150- IPA
+
+Distances
+Distance=5: 15
+Distance=4: 23
+Distance=3: 15
+Distance=2: 22
+Distance=1: 19
+Distance=0: 6
+Percentiles
+Distance=5, 1.0
+Distance=4, 0.85
+Distance=3, 0.62
+Distance=2, 0.47
+Distance=1, 0.25
+Distance=0, 0.06
+
+
+Context Dim at 128 - IPA
+Distances
+Distance=5: 17
+Distance=4: 18
+Distance=3: 20
+Distance=2: 21
+Distance=1: 18
+Distance=0: 6
+Percentiles
+Distance=5, 1.0
+Distance=4, 0.83
+Distance=3, 0.65
+Distance=2, 0.45
+Distance=1, 0.24
+Distance=0, 0.06
+
+
+
+Context Dim at 150- ASJP
+
+Distances
+Distance=5: 17
+Distance=4: 16
+Distance=3: 20
+Distance=2: 21
+Distance=1: 17
+Distance=0: 9
+Percentiles
+Distance=5, 1.0
+Distance=4, 0.83
+Distance=3, 0.67
+Distance=2, 0.47
+Distance=1, 0.26
+Distance=0, 0.09
+
+
+Context Dim at 128 - ASJP
+Distances
+Distance=5: 18
+Distance=4: 13
+Distance=3: 19
+Distance=2: 20
+Distance=1: 20
+Distance=0: 10
+Percentiles
+Distance=5, 1.0
+Distance=4, 0.82
+Distance=3, 0.69
+Distance=2, 0.5
+Distance=1, 0.3
+Distance=0, 0.1
+
+
+Aligned
+
+Context Dim at 150 - IPA
+Distances
+Distance=5: 20
+Distance=4: 18
+Distance=3: 13
+Distance=2: 24
+Distance=1: 21
+Distance=0: 5
+Percentiles
+Distance=5, 1.0
+Distance=4, 0.801980198019802
+Distance=3, 0.6237623762376238
+Distance=2, 0.49504950495049505
+Distance=1, 0.25742574257425743
+Distance=0, 0.04950495049504951
+
+Context Dim at 128- IPA
+Distances
+Distance=5: 20
+Distance=4: 20
+Distance=3: 18
+Distance=2: 23
+Distance=1: 14
+Distance=0: 6
+Percentiles
+Distance=5, 1.0
+Distance=4, 0.801980198019802
+Distance=3, 0.6039603960396039
+Distance=2, 0.42574257425742573
+Distance=1, 0.19801980198019803
+Distance=0, 0.0594059405940594
+
+
+Context Dim at 150 - ASJP
+Distances
+Distance=5: 27
+Distance=4: 13
+Distance=3: 15
+Distance=2: 24
+Distance=1: 18
+Distance=0: 4
+Percentiles
+Distance=5, 1.0
+Distance=4, 0.7326732673267327
+Distance=3, 0.6039603960396039
+Distance=2, 0.45544554455445546
+Distance=1, 0.21782178217821782
+Distance=0, 0.039603960396039604
+
+
+Context Dim at 128 - ASJP
+Distances
+Distance=5: 28
+Distance=4: 11
+Distance=3: 17
+Distance=2: 23
+Distance=1: 16
+Distance=0: 6
+Percentiles
+Distance=5, 1.0
+Distance=4, 0.7227722772277227
+Distance=3, 0.6138613861386139
+Distance=2, 0.44554455445544555
+Distance=1, 0.21782178217821782
+Distance=0, 0.0594059405940594
