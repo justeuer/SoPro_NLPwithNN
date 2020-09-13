@@ -13,7 +13,7 @@ from classes import Alphabet, CognateSet, LevenshteinDistance
 from utils import create_model
 
 # create output dir
-out_dir = Path("../data/out")
+out_dir = Path("../data/out/ciobanu")
 if not out_dir.exists():
     out_dir.mkdir()
 
@@ -37,7 +37,7 @@ def parser_args():
     parser = ArgumentParser()
     parser.add_argument("--data",
                         type=str,
-                        default="../data/romance_asjp_full.csv",
+                        default="../data/ciobanu/romance_asjp_auto.csv",
                         help="file containing the cognate sets")
     parser.add_argument("--model",
                         type=str,
@@ -62,7 +62,7 @@ def parser_args():
     return parser.parse_args()
 
 
-def main():
+def train():
     global encoding
     args = parser_args()
     # determine whether the model should use feature encodings or character embeddings
@@ -75,10 +75,10 @@ def main():
     data_file = None
     if args.data == "ipa":
     	encoding = 'utf-16'
-    	data_file = Path("../data/romance_ipa_full.csv")
+    	data_file = Path("../data/ciobanu/romance_ipa_auto.csv")
     elif args.data == "asjp":
     	encoding = 'ascii'
-    	data_file = Path("../data/romance_asjp_full.csv")
+    	data_file = Path("../data/ciobanu/romance_asjp_auto.csv")
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     # determine model
     assert args.model in MODELS, "Model should be one of {}".format(MODELS)
@@ -119,6 +119,8 @@ def main():
     data = data_file.open(encoding='utf-16').read().split("\n")
     cols = data[HEADER_ROW].split(COLUMN_SEPARATOR)
     langs = cols[2:]
+    print("langs")
+    print(langs)
 
     for li, line in enumerate(data[HEADER_ROW:]):
         if aligned:
@@ -131,9 +133,13 @@ def main():
         id = row_split[ID_COLUMN]
         concept = row_split[CONCEPT_COLUMN]
         words = row_split[CONCEPT_COLUMN + 1:]
+        print("words")
+        print(words)
         cognate_dict = {}
         assert len(langs) == len(words), "Langs / Words mismatch, expected {}, got {}".format(len(langs), len(words))
         for lang, word in zip(langs, words):
+            print("lang, word")
+            print(lang, word)
             cognate_dict[lang] = alphabet.translate(word)
         cs = CognateSet(id=id,
                         concept=concept,
@@ -145,12 +151,14 @@ def main():
     # maybe we needn't do the evaluation, since we mainly want to know how
     # the model behaves with the different inputs
 
-    #split_index = int(valid_size * len(cognate_sets))
-    #train_data = cognate_sets[:split_index]
-    #valid_data = cognate_sets[split_index:]
-    #print("train size: {}".format(len(train_data)))
-    #print("valid size: {}".format(len(valid_data)))
-    #cognate_sets = cognate_sets[10:30]
+    split_index = int(valid_size * len(cognate_sets))
+    train_data = cognate_sets[:split_index]
+    valid_data = cognate_sets[split_index:]
+    print("train size: {}".format(len(train_data)))
+    print("valid size: {}".format(len(valid_data)))
+    cognate_sets = cognate_sets[10:30]
+    print("cognate_sets")
+    print(cognate_sets)
 
     words_true = []
     words_pred = []
@@ -217,4 +225,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    train()
