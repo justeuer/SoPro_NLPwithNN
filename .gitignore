@@ -4,3 +4,4 @@ latex/*
 data/*
 .old/*
 *__pycache__*
+requirements.txt

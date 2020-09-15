@@ -418,15 +418,15 @@ class LevenshteinDistance(object):
     def __init__(self,
                  true: List[str],
                  pred: List[str],
-                 word_lengths: List[int],
+                 #word_lengths: List[int],
                  upper_bound=5):
         self.true = true
         self.pred = pred
-        self.word_lengths = word_lengths
+        self.word_lengths = [len(word) for word in self.true]
         self.upper_bound = upper_bound
         self.distances = sorted([self._levenshtein(t, p) for t, p in zip(true, pred)], reverse=True)
         self.mean_distance = np.mean(self.distances)
-        self.mean_distance_normalized = 5
+        self.mean_distance_normalized = self._mean_distance_norm()
         self.percentiles = self._percentiles()
 
     def _levenshtein(self, t: str, p: str):
@@ -451,11 +451,12 @@ class LevenshteinDistance(object):
         """
         Calculates Levenshtein distance percentiles
         Returns
+            A dictionary containing the percentiles
         -------
 
         """
-        data = Counter(self.distances)
         percentiles = {}
+        data = Counter(self.distances)
 
         # add up percentiles
         for distance, count in data.items():
@@ -473,48 +474,39 @@ class LevenshteinDistance(object):
         """
         Calculates the mean edit distance normalized by word length
         Returns
+            The distance percentiles
         -------
 
         """
         normalized = []
         for length, distance in zip(self.word_lengths, self.distances):
             normalized.append(distance/length)
-
         return np.mean(normalized)
-
-    def plot_distances(self, path: Path):
-        data = Counter(self.distances)
-        x = list(data.keys())
-        x = [str(i) for i in x]
-        y = list(data.values())
-        plt.figure()
-        plt.bar(x, y)
-        plt.ylabel("Counts")
-        plt.xlabel("Distances")
-        plt.savefig(path.absolute())
 
     def print_distances(self):
         print("Distances")
-        counted = Counter(self.distances)
-        for d, count in counted.items():
+        data = Counter(self.distances)
+        for d, count in data.items():
             print("Distance={}: {}".format(d, count))
         print("Mean distance: {}".format(self.mean_distance))
         print("Mean distance, normalized: {}".format(self.mean_distance_normalized))
-
-    def plot_percentiles(self, path: Path):
-        x = list(self.percentiles.keys())
-        x = ["d <= " + str(i) for i in x]
-        y = list(self.percentiles.values())
-        plt.figure()
-        plt.bar(x, y)
-        plt.xlabel("Distances")
-        plt.ylabel("Percentiles")
-        plt.savefig(path.absolute())
 
     def print_percentiles(self):
         print("Percentiles")
         for d, perc in self.percentiles.items():
             print("Distance={}, {}".format(d, perc))
+
+    @property
+    def get_distances(self):
+        return Counter(self.distances)
+
+    @property
+    def get_mean_dist(self):
+        return self.mean_distance
+
+    @property
+    def get_mean_dist_normalized(self):
+        return self.mean_distance_normalized
 
 
 if __name__ == '__main__':
