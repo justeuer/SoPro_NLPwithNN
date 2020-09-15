@@ -1,7 +1,6 @@
 import pandas as pd
 from pathlib import Path
 import numpy as np
-from numpy.linalg import norm
 from tensorflow import keras
 import re
 from typing import Dict, List
@@ -103,7 +102,7 @@ class Alphabet(object):
 
     def create_char_embeddings(self):
         """
-        Creates a
+        Creates character embeddings for all characters in the alphabet file
         Returns
         -------
 
@@ -260,14 +259,21 @@ class Alphabet(object):
 
     def get_embedding_dim(self):
         """
-
         Returns
+            The size of the one-hot embeddings, which is the size of the alphabet, which
+            is the size of the vocabulary.
         -------
 
         """
         return len(self)
 
     def get_char_embeddings(self):
+        """
+        Returns
+            The dictionary mapping characters to their embeddings. Not used atm.
+        -------
+
+        """
         return self._char_embeddings
 
     def __str__(self):
@@ -290,6 +296,10 @@ class Alphabet(object):
 
 
 class CognateSet(object):
+    """
+    Models a cognate set in the data file. Provides the data structures required for
+    the training phase, along with some convenience methods.
+    """
     def __init__(self,
                  id: str,
                  concept: str,
@@ -304,14 +314,32 @@ class CognateSet(object):
         self.cognate_dict = {lang: self._pad(word) for lang, word in cognate_dict.items()}
 
     def get_ancestor(self):
+        """
+        Returns
+            The Word object representing the ancestor in the cognate set
+        -------
+
+        """
         return self.cognate_dict[self.ancestor]
         
     def _pad(self, word: Word):
+        """
+        Pads a word to an expected maximum length
+        Parameters
+        ----------
+        word
+            The word to pad
+        Returns
+            The padded word
+        -------
+
+        """
         for i in range(len(word), self.pad_to):
             word.get_chars().append(self.alphabet.create_char(self.alphabet.empty_symbol))
         return word
 
     def __iter__(self):
+        """ Mainly used for the training loops. yields an array of characters per location in the cognet set. """
         d = {}
         for i in range(self.pad_to):
             for lang, word in self.cognate_dict.items():
@@ -333,21 +361,27 @@ class CognateSet(object):
 
 
 class Ipa2Asjp(object):
+    """ This class is used to convert the IPA data produced with epitran to asjp """
     def __init__(self,
                  sca,
                  ignored_symbols: List[str],
-                 #start_symbol="<start>",
-                 #stop_symbol="<stop>",
-                 #pad_symbol="<pad>",
                  empty_symbol="-"):
         self.sca = sca
         self.empty_symbol = empty_symbol
-        #self.start_symbol = start_symbol
-        #self.stop_symbol = stop_symbol
-        #self.pad_symbol = pad_symbol
         self.ignored_symbols = ignored_symbols
 
     def convert(self, chars: List[Char]):
+        """
+        Converts a list of (IPA) Char objects to their ASJP counterparts
+        Parameters
+        ----------
+        chars
+            The list of IPA Char objects
+        Returns
+            The list of ASJP Char objects
+        -------
+
+        """
         s = ""
         for char in chars:
             char_ = char.get_char()
@@ -384,18 +418,42 @@ class LevenshteinDistance(object):
     def __init__(self,
                  true: List[str],
                  pred: List[str],
+                 word_lengths: List[int],
                  upper_bound=5):
         self.true = true
         self.pred = pred
+        self.word_lengths = word_lengths
         self.upper_bound = upper_bound
         self.distances = sorted([self._levenshtein(t, p) for t, p in zip(true, pred)], reverse=True)
+        self.mean_distance = np.mean(self.distances)
+        self.mean_distance_normalized = 5
         self.percentiles = self._percentiles()
 
     def _levenshtein(self, t: str, p: str):
+        """
+        Calculates the Levenshtein distance between the latin word and the reconstructed word. Uses the
+        Levenshtein distance function from NLTK.
+
+        Parameters
+        ----------
+        t
+            String representation of the latin word
+        p
+            String representation of the reconstructed word
+        Returns
+            The Levenshtein distance in characters
+        -------
+        """
         distance = nltk.edit_distance(t, p)
         return min(distance, self.upper_bound)
 
     def _percentiles(self):
+        """
+        Calculates Levenshtein distance percentiles
+        Returns
+        -------
+
+        """
         data = Counter(self.distances)
         percentiles = {}
 
@@ -405,12 +463,24 @@ class LevenshteinDistance(object):
                 #if percentile > prev:
                 percentiles[percentile] += count
             percentiles[distance] = count
-            prev = distance
 
         # divide by total number of distances
         percentiles = {percentile: count/len(self.distances) for percentile, count in percentiles.items()}
 
         return percentiles
+
+    def _mean_distance_norm(self):
+        """
+        Calculates the mean edit distance normalized by word length
+        Returns
+        -------
+
+        """
+        normalized = []
+        for length, distance in zip(self.word_lengths, self.distances):
+            normalized.append(distance/length)
+
+        return np.mean(normalized)
 
     def plot_distances(self, path: Path):
         data = Counter(self.distances)
@@ -425,8 +495,11 @@ class LevenshteinDistance(object):
 
     def print_distances(self):
         print("Distances")
-        for d, count in Counter(self.distances).items():
+        counted = Counter(self.distances)
+        for d, count in counted.items():
             print("Distance={}: {}".format(d, count))
+        print("Mean distance: {}".format(self.mean_distance))
+        print("Mean distance, normalized: {}".format(self.mean_distance_normalized))
 
     def plot_percentiles(self, path: Path):
         x = list(self.percentiles.keys())
