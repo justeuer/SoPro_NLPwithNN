@@ -18,25 +18,27 @@ class Char(object):
                  char: str,
                  features: List[str],
                  vector: List[float]):
-        self._features = features
-        self._char = char
-        self._vector = vector
+        self.__features = features
+        self.__char = char
+        self.__vector = vector
 
     def get_feature_val(self, feature: str):
-        assert feature in self._features, "Feature {} not in dimensions!"
-        return self._vector[self._features.index(feature)]
+        assert feature in self.__features, "Feature {} not in dimensions!"
+        return self.__vector[self.__features.index(feature)]
 
-    def get_feature_vector(self):
-        return self._vector
+    @property
+    def vector(self):
+        return self.__vector
 
-    def get_char(self):
-        return self._char
+    @property
+    def char(self):
+        return self.__char
 
     def __str__(self):
-        s = self._char + " ("
-        for i, feature in enumerate(self._features):
-            if self._vector[i] == 1:
-                s += " " + self._features[i]
+        s = self.__char + " ("
+        for i, feature in enumerate(self.__features):
+            if self.__vector[i] == 1:
+                s += " " + self.__features[i]
         s += " )"
         return s
 
@@ -45,9 +47,9 @@ class Word(object):
     """ Wrapper class, contains a list of chars """
 
     def __init__(self, chars: List[Char]):
-        self.chars = chars
+        self.__chars = chars
 
-    def get_feature_array(self):
+    def feature_array(self):
         """
         Agglutinates the feature vectors of the chars of the word
         Returns
@@ -55,19 +57,20 @@ class Word(object):
         -------
 
         """
-        return np.array([char.get_feature_vector() for char in self.chars])
+        return np.array([char.vector for char in self.__chars])
 
-    def get_chars(self):
-        return self.chars
+    @property
+    def chars(self):
+        return self.__chars
 
     def __str__(self):
         s = ""
-        for char in self.chars:
-            s += char.get_char()
+        for char in self.__chars:
+            s += char.char
         return s
 
     def __len__(self):
-        return len(self.chars)
+        return len(self.__chars)
 
 
 class Alphabet(object):
@@ -87,18 +90,18 @@ class Alphabet(object):
                  empty_symnol="-",
                  header_row=0,
                  chars_col=0,
-                 orthographic=False):
-        self._features = []
-        self._alphabet = []
-        self._dict = {}
+                 ortho=False):
+        self.__features = []
+        self.__alphabet = []
+        self.__dict = {}
         self.pad_symbol = pad_symbol
         self.empty_symbol = empty_symnol
-        self.header_row = header_row
-        self.chars_col = chars_col
-        self.encoding = encoding
-        self.orthographic = orthographic
-        self._load(csv, encoding=self.encoding)
-        self._char_embeddings = self.create_char_embeddings()
+        self.__header_row = header_row
+        self.__chars_col = chars_col
+        self.__encoding = encoding
+        self.__ortho = ortho
+        self._load(csv, encoding=self.__encoding)
+        self.__char_embeddings = self.create_char_embeddings()
 
     def create_char_embeddings(self):
         """
@@ -108,7 +111,7 @@ class Alphabet(object):
 
         """
         char_embeddings = {}
-        char2index = {char: i for i, char in enumerate(list(self._dict.keys()))}
+        char2index = {char: i for i, char in enumerate(list(self.__dict.keys()))}
 
         for char, one_hot_vector in zip(char2index.keys(),
                                         keras.utils.to_categorical(list(char2index.values()),
@@ -175,22 +178,22 @@ class Alphabet(object):
         -------
         """
         rows = path.open(encoding=encoding).read().split("\n")
-        self._features = rows[self.header_row].split(",")[1:]
-        for row in rows[self.header_row + 1:]:
+        self.__features = rows[self.__header_row].split(",")[1:]
+        for row in rows[self.__header_row + 1:]:
             if row != "":
                 cols = row.split(",")
                 # check if the number of features for a given character matches
                 # the total number of features
-                if self.orthographic:
-                    assert len(cols) - 1 == len(self._features), \
-                        "Not enough features found, expected {}, got {}".format(len(self._features), len(cols))
-                char = cols[self.chars_col]
-                self._alphabet.append(char)
+                if self.__ortho:
+                    assert len(cols) - 1 == len(self.__features), \
+                        "Not enough features found, expected {}, got {}".format(len(self.__features), len(cols))
+                char = cols[self.__chars_col]
+                self.__alphabet.append(char)
                 vec = []
-                for feature_val in cols[self.header_row + 1:]:
+                for feature_val in cols[self.__header_row + 1:]:
                     vec.append(int(feature_val))
-                self._dict[char] = vec
-        #print(self._alphabet)
+                self.__dict[char] = vec
+        # print(self._alphabet)
 
     def create_char(self, char: str):
         """
@@ -203,12 +206,35 @@ class Alphabet(object):
             A Char object
         -------
         """
-        assert char in self._alphabet, "Unknown character '{}'".format(char)
-        if not self.orthographic:
-            return Char(char, self._features, self._dict[char])
+        assert char in self.__alphabet, "Unknown character '{}'".format(char)
+        if not self.__ortho:
+            return Char(char, self.__features, self.__dict[char])
         else:
-            return Char(char, [], self._char_embeddings[char])
-        return None
+            return Char(char, [], self.__char_embeddings[char])
+
+    def get_char_by_vector(self, vector: np.array):
+        """
+        New method for both feature encodings and one-hot embeddings
+        Parameters
+        ----------
+        vector
+            The numpy array representing the features of the char
+        Returns
+            A Char object corresponding to the feature vector
+        -------
+
+        """
+        cos_sims = {}
+        if not self.__ortho:
+            for c, v in self.__dict.items():
+                cos_sims[c] = cos_sim(vector, v)
+        else:
+            for c, v in self.__char_embeddings.items():
+                # only second dimension, the first one is lacking in the feature encodings
+                # for unknown reasons
+                cos_sims[c] = cos_sim(v, vector[0,])
+
+        return max(cos_sims, key=cos_sims.get)
 
     def get_char_by_feature_vector(self, vec: np.array):
         """
@@ -223,9 +249,9 @@ class Alphabet(object):
         -------
         """
         cos_sims = {}
-        for c, feature_vector in self._dict.items():
+        for c, feature_vector in self.__dict.items():
             cos_sims[c] = cos_sim(vec, feature_vector)
-        
+
         return max(cos_sims, key=cos_sims.get)
 
     def get_char_by_embedding(self, vec: np.array):
@@ -240,7 +266,7 @@ class Alphabet(object):
         -------
         """
         cos_sims = {}
-        for c, feature_vector in self._char_embeddings.items():
+        for c, feature_vector in self.__char_embeddings.items():
             cos_sims[c] = cos_sim(vec, feature_vector)
 
         return max(cos_sims, key=cos_sims.get)
@@ -255,7 +281,7 @@ class Alphabet(object):
         -------
 
         """
-        return len(self._features)
+        return len(self.__features)
 
     def get_embedding_dim(self):
         """
@@ -267,32 +293,40 @@ class Alphabet(object):
         """
         return len(self)
 
-    def get_char_embeddings(self):
+    @property
+    def char_embeddings(self):
         """
         Returns
             The dictionary mapping characters to their embeddings. Not used atm.
         -------
 
         """
-        return self._char_embeddings
+        return self.__char_embeddings
+
+    @property
+    def feature_dim(self):
+        if not self.__ortho:
+            return len(self.__features)
+        else:
+            return len(self)
 
     def __str__(self):
         s = "*** ASJP alphabet class ***\n"
-        if not self.orthographic:
-            for ci, (char, vector) in enumerate(self._dict.items()):
+        if not self.__ortho:
+            for ci, (char, vector) in enumerate(self.__dict.items()):
                 feature_vals = "{}\t{}\t(".format(ci, char)
                 for vi, val in enumerate(vector):
                     if int(val) == 1:
-                        feature_vals += " {} ".format(self._features[vi])
+                        feature_vals += " {} ".format(self.__features[vi])
                 feature_vals += ")"
                 s += feature_vals + "\n"
         else:
-            for ci, char in enumerate(self._char_embeddings.keys()):
+            for ci, char in enumerate(self.__char_embeddings.keys()):
                 s += char + "\n"
         return s
 
     def __len__(self):
-        return len(self._alphabet)
+        return len(self.__alphabet)
 
 
 class CognateSet(object):
@@ -300,28 +334,30 @@ class CognateSet(object):
     Models a cognate set in the data file. Provides the data structures required for
     the training phase, along with some convenience methods.
     """
+
     def __init__(self,
                  id: str,
                  concept: str,
                  ancestor: str,
                  cognate_dict: Dict[str, Word],
                  alphabet: Alphabet):
-        self.id = id
-        self.concept = concept
-        self.alphabet = alphabet
-        self.ancestor = ancestor
-        self.pad_to = max([len(word) for word in cognate_dict.values()])
-        self.cognate_dict = {lang: self._pad(word) for lang, word in cognate_dict.items()}
+        self.__id = id
+        self.__concept = concept
+        self.__alphabet = alphabet
+        self.__ancestor = ancestor
+        self.__pad_to = max([len(word) for word in cognate_dict.values()])
+        self.__cognate_dict = {lang: self._pad(word) for lang, word in cognate_dict.items()}
 
-    def get_ancestor(self):
+    @property
+    def ancestor_word(self):
         """
         Returns
             The Word object representing the ancestor in the cognate set
         -------
 
         """
-        return self.cognate_dict[self.ancestor]
-        
+        return self.__cognate_dict[self.__ancestor]
+
     def _pad(self, word: Word):
         """
         Pads a word to an expected maximum length
@@ -334,34 +370,47 @@ class CognateSet(object):
         -------
 
         """
-        for i in range(len(word), self.pad_to):
-            word.get_chars().append(self.alphabet.create_char(self.alphabet.empty_symbol))
+        for i in range(len(word), self.__pad_to):
+            word.chars.append(self.__alphabet.create_char(self.__alphabet.empty_symbol))
         return word
 
     def __iter__(self):
         """ Mainly used for the training loops. yields an array of characters per location in the cognet set. """
         d = {}
-        for i in range(self.pad_to):
-            for lang, word in self.cognate_dict.items():
-                d[lang] = word.get_chars()[i].get_feature_vector()
+        for i in range(self.__pad_to):
+            for lang, word in self.__cognate_dict.items():
+                d[lang] = word.chars[i].vector
             yield pd.DataFrame(data=d)
 
     def __str__(self):
-        s = 5*"=" + " Cognate Set {} ".format(self.id) + 5*"=" + "\n"
+        s = 5 * "=" + " Cognate Set {} ".format(self.id) + 5 * "=" + "\n"
         s += "concept: {}\n".format(self.concept)
-        s += "ancestor: {}\n".format(self.ancestor)
-        for li, (lang, word) in enumerate(self.cognate_dict.items()):
-            if lang != self.ancestor:
+        s += "ancestor: {}\n".format(self.__ancestor)
+        for li, (lang, word) in enumerate(self.__cognate_dict.items()):
+            if lang != self.__ancestor:
                 s += "lang {}: {} {}\n".format(li, lang, word)
-        s += "pad_to: {}\n".format(self.pad_to)
+        s += "pad_to: {}\n".format(self.__pad_to)
         return s
 
     def __len__(self):
-        return len(cognate_dict)
+        return len(self.__cognate_dict)
+
+    @property
+    def id(self):
+        return self.__id
+
+    @property
+    def concept(self):
+        return self.__concept
+
+    @property
+    def ancestor(self):
+        return self.__ancestor
 
 
 class Ipa2Asjp(object):
     """ This class is used to convert the IPA data produced with epitran to asjp """
+
     def __init__(self,
                  sca,
                  ignored_symbols: List[str],
@@ -384,12 +433,12 @@ class Ipa2Asjp(object):
         """
         s = ""
         for char in chars:
-            char_ = char.get_char()
+            char_ = char.char
             if char_ == self.empty_symbol:
                 s += self.empty_symbol
                 continue
             # ignore start and stop symbols
-            #if char_ == self.start_symbol or char_ == self.stop_symbol:
+            # if char_ == self.start_symbol or char_ == self.stop_symbol:
             #    continue
             # lingpy doesn't convert nasal vowels
             if char.get_feature_val('nasal') == 1 and char.get_feature_val('stop') == 0:
@@ -415,19 +464,19 @@ class Ipa2Asjp(object):
 
 class LevenshteinDistance(object):
     """ Uses the edit_distance function (levenshtein distance) to calculate our scores """
+
     def __init__(self,
                  true: List[str],
                  pred: List[str],
-                 #word_lengths: List[int],
                  upper_bound=5):
-        self.true = true
-        self.pred = pred
-        self.word_lengths = [len(word) for word in self.true]
-        self.upper_bound = upper_bound
-        self.distances = sorted([self._levenshtein(t, p) for t, p in zip(true, pred)], reverse=True)
-        self.mean_distance = np.mean(self.distances)
-        self.mean_distance_normalized = self._mean_distance_norm()
-        self.percentiles = self._percentiles()
+        self.__true = true
+        self.__pred = pred
+        self.__word_lengths = [len(word) for word in self.__true]
+        self.__upper_bound = upper_bound
+        self.__distances = sorted([self._levenshtein(t, p) for t, p in zip(true, pred)], reverse=True)
+        self.__mean_distance = np.mean(self.__distances)
+        self.__mean_distance_normalized = self._mean_distance_norm()
+        self.__percentiles = self._percentiles()
 
     def _levenshtein(self, t: str, p: str):
         """
@@ -445,7 +494,7 @@ class LevenshteinDistance(object):
         -------
         """
         distance = nltk.edit_distance(t, p)
-        return min(distance, self.upper_bound)
+        return min(distance, self.__upper_bound)
 
     def _percentiles(self):
         """
@@ -456,17 +505,17 @@ class LevenshteinDistance(object):
 
         """
         percentiles = {}
-        data = Counter(self.distances)
+        data = Counter(self.__distances)
 
         # add up percentiles
         for distance, count in data.items():
             for percentile in percentiles:
-                #if percentile > prev:
+                # if percentile > prev:
                 percentiles[percentile] += count
             percentiles[distance] = count
 
         # divide by total number of distances
-        percentiles = {percentile: count/len(self.distances) for percentile, count in percentiles.items()}
+        percentiles = {percentile: count / len(self.__distances) for percentile, count in percentiles.items()}
 
         return percentiles
 
@@ -479,72 +528,44 @@ class LevenshteinDistance(object):
 
         """
         normalized = []
-        for length, distance in zip(self.word_lengths, self.distances):
-            normalized.append(distance/length)
+        for length, distance in zip(self.__word_lengths, self.__distances):
+            normalized.append(distance / length)
         return np.mean(normalized)
 
     def print_distances(self):
         print("Distances")
-        data = Counter(self.distances)
+        data = Counter(self.__distances)
         for d, count in data.items():
             print("Distance={}: {}".format(d, count))
-        print("Mean distance: {}".format(self.mean_distance))
-        print("Mean distance, normalized: {}".format(self.mean_distance_normalized))
+        print("Mean distance: {}".format(self.__mean_distance))
+        print("Mean distance, normalized: {}".format(self.__mean_distance_normalized))
 
     def print_percentiles(self):
         print("Percentiles")
-        for d, perc in self.percentiles.items():
+        for d, perc in self.__percentiles.items():
             print("Distance={}, {}".format(d, perc))
 
     @property
-    def get_distances(self):
-        return Counter(self.distances)
+    def distances(self):
+        return Counter(self.__distances)
 
     @property
-    def get_mean_dist(self):
-        return self.mean_distance
+    def mean_distance(self):
+        return self.__mean_distance
 
     @property
-    def get_mean_dist_normalized(self):
-        return self.mean_distance_normalized
-
+    def mean_distance_normalized(self):
+        return self.__mean_distance_normalized
 
 if __name__ == '__main__':
     asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='utf-8')
-
-    cols = ['id', 'concept', 'latin', 'italian', 'spanish', 'french', 'portuguese', 'romanian']
-    langs = cols[2:]
-    print("cols", cols)
-    print("langs", langs)
-    romance_loc = Path("../data/romance_asjp_full.csv")
-    romance_data = romance_loc.open(encoding="utf-16").read().split("\n")
-    # purge unaligned data
-    romance_aligned = [line for i, line in enumerate(romance_data[1:]) if i % 2 == 1]
-    print(len(romance_aligned))
-    romance_aligned = romance_aligned[0]
-    line_split = romance_aligned.split(",")
-    assert len(line_split) == len(cols), "Not enough values in line: Expected {}, got {}".format(len(cols), len(line_split))
-
-    cognate_dict = {}
-    for word, col in zip(romance_aligned.split(","), cols):
-        if col in langs:
-            cognate_dict[col] = asjp.translate(word)
-
-    cs = CognateSet(id="1",
-                    concept="I",
-                    ancestor='latin',
-                    cognate_dict=cognate_dict,
-                    alphabet=asjp)
-
-    for datapoint in cs:
-        target = datapoint.pop(cs.ancestor)
-        print("target")
-        print(target)
-        print("descendants")
-        print(datapoint)
-    print(cs)
-
-    char = asjp.create_char("p")
-    print(char)
-    print(char.get_feature_vector())
-    print(asjp.get_char_by_feature_vector(char.get_feature_vector()))
+    print(asjp)
+    ciobanu_asjp = Path("../data/romance_asjp_auto.csv").open(encoding='utf-16').read()
+    for line in ciobanu_asjp.split("\n")[1:]:
+        splitted = line.split(",")
+        print(splitted)
+        id = splitted[0]
+        words = splitted[2:]
+        for word in words:
+            asjp_word = asjp.translate(word)
+            print(id, asjp_word)

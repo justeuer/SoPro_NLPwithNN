@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 import numpy as np
 from pathlib import Path
 import tensorflow as tf
-from tensorflow.keras.optimizers import SGD
 
 from utils import create_deep_model
 from classes import Alphabet, CognateSet, LevenshteinDistance
@@ -38,7 +37,7 @@ def parse_args():
                         type=str,
                         default='latin',
                         help="column corresponding to the proto-form")
-    parser.add_argument("--orthographic",
+    parser.add_argument("--ortho",
                         default=0,
                         action='count',
                         help="switch between orthographic and feature-based model")
@@ -60,9 +59,15 @@ def parse_args():
 def main():
     global encoding
     args = parse_args()
+
     # determine whether to use the aligned or unaligned data
     assert args.aligned in [0, 1], "Too many instances of --aligned switch, should be 0 or 1"
     aligned = bool(args.aligned)
+
+    # and decide between feature encodings and character embeddings
+    assert args.ortho in [0, 1], "Too many instances of --ortho switch, should be 0 or 1"
+    ortho = bool(args.ortho)
+
     # load data
     data_file = Path(args.data)
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
@@ -74,19 +79,27 @@ def main():
         encoding = 'utf-16'
         alphabet_file = Path("../data/alphabets/ipa.csv")
     elif args.model == "asjp":
+
+
         encoding = 'ascii'
         alphabet_file = Path("../data/alphabets/asjp.csv")
     # load data from file
     assert alphabet_file.exists() and alphabet_file.is_file(), "Alphabet file {} does not exist".format(alphabet_file)
-    alphabet = Alphabet(alphabet_file, encoding=encoding, orthographic=False)
+    alphabet = Alphabet(alphabet_file, encoding=encoding, ortho=ortho)
+
+    # number of epochs
     assert isinstance(args.epochs, int), "Epochs not int, but {}".format(type(args.epochs))
     assert args.epochs > 0, "Epochs out of range: {}".format(args.epochs)
     epochs = args.epochs
+
     # number of hidden layers
     assert args.n_hidden > 0, "Number of hidden layers should be at least 1 ;)"
     n_hidden = args.n_hidden
+
     # determine ancestor
     ancestor = args.ancestor
+
+    # print alphabet
     print("alphabet:")
     print(alphabet)
 
@@ -120,13 +133,12 @@ def main():
                                  alphabet=alphabet)
         cognate_sets.append(cognate_set)
 
-    # cognate_sets = cognate_sets[:10]
-    batches = len(cognate_sets)
-
     # input shape is a vector of size (number of languages without the ancestor * number of features)
-    input_dim = (1, len(langs) - 1, alphabet.get_feature_dim())
+    print("langs", langs)
+    input_dim = (1, len(langs) - 1, alphabet.feature_dim)
+    print(input_dim)
     # output dim is the number of characters (for classification)
-    output_dim = alphabet.get_feature_dim()
+    output_dim = alphabet.feature_dim
     # define model
     model, optimizer, loss_object = create_deep_model(input_dim=input_dim,
                                                       hidden_dim=256,
@@ -162,9 +174,10 @@ def main():
                     batch_losses.append(float(loss))
                     gradients = tape.gradient(loss, model.trainable_weights)
                     optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                    output_characters.append(alphabet.get_char_by_feature_vector(output))
+                    output_characters.append(alphabet.get_char_by_vector(output))
             words_pred.append("".join(output_characters))
-            words_true.append(str(cognate_set.get_ancestor()))
+            words_true.append(str(cognate_set.ancestor_word))
+        # calculate mean epoch loss
         mean_loss = np.mean(batch_losses)
         epoch_losses.append(mean_loss)
         print("Epoch[{}]/[{}], mean batch loss = {}".format(epoch, epochs, mean_loss))
@@ -172,13 +185,16 @@ def main():
         ld = LevenshteinDistance(true=words_true, pred=words_pred)
         ld.print_distances()
         ld.print_percentiles()
+        # plot if it's the last epoch
         if epoch == epochs:
-            plot_results(title="Model: feedforward, data: {}{}".format(args.model, "-aligned" if aligned else ""),
-                         distances={str(d): count for d, count in ld.get_distances.items()},
-                         mean_dist=ld.get_mean_dist,
-                         mean_dist_norm=ld.get_mean_dist_normalized,
+            outfile =  "../out/plots/deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
+            title = "Model: deep, {}, {}, {}".format(args.model, "aligned" if aligned else "", "orthographic" if ortho else "")
+            plot_results(title=title,
+                         distances={str(d): count for d, count in ld.distances.items()},
+                         mean_dist=ld.mean_distance,
+                         mean_dist_norm=ld.mean_distance_normalized,
                          losses=epoch_losses,
-                         outfile=Path("../out/plots/{}{}_plot.jpg".format(args.model, "_aligned" if aligned else "")))
+                         outfile=Path(outfile))
 
 
 if __name__ == '__main__':

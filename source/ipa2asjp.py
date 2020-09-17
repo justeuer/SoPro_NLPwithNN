@@ -41,7 +41,7 @@ for line in romance_ipa.split("\n")[1:]:
             .replace("̃", "").replace('̆', "").replace("́", "").replace('̄', "").replace("ʷ", "").replace('̈', "").replace('̂', "")\
             .replace("ț", "").replace('͡', "").replace("ɬ", "").replace('̌', "").replace("<", "").replace(">", "").replace("2", "")
             ipa_w = ipa.translate(w)
-            asjp_w = converter.convert(ipa_w.get_chars())
+            asjp_w = converter.convert(ipa_w.chars)
             # construct string
             s += "," + asjp_w
         s += "\n"
