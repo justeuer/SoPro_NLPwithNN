@@ -112,13 +112,14 @@ def main():
     langs = cols[2:]
 
     for li, line in enumerate(data[HEADER_ROW:]):
+        print(li, line)
         if aligned:
-            if line == "" or li % 2 != 0:
+            if line.replace("ā", "a") == "" or li % 2 != 0:
                 continue
         else:
-            if line == "" or li % 2 == 0:
+            if line.replace("ā", "a") == "" or li % 2 == 0:
                 continue
-        row_split = line.split(COLUMN_SEPARATOR)
+        row_split = line.replace("ā", "a").split(COLUMN_SEPARATOR)
         id = row_split[ID_COLUMN]
         concept = row_split[CONCEPT_COLUMN]
         words = row_split[CONCEPT_COLUMN + 1:]
