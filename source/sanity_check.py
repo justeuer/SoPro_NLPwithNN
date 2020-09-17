@@ -8,7 +8,7 @@ ipa = Alphabet(Path("../data/alphabets/ipa.csv"))
 chars = "abcdefghijklmnop"
 
 for char in chars:
-    vec = ipa.create_char(char).get_feature_vector()
+    vec = ipa.create_char(char).vector
     char_ = ipa.get_char_by_feature_vector(vec)
     print(char, char_)
 

@@ -37,13 +37,13 @@ for category, lines in {'raw': romance_raw, 'aligned': romance_aligned}.items():
 
 errors = 0
 for id, cognates in data['aligned'].items():
-    l_lat = len(cognates['latin'].get_feature_array())
+    l_lat = len(cognates['latin'].feature_array)
     for lang, word in cognates.items():
-        ls = [len(word.get_feature_array()) for word in cognates.values()]
+        ls = [len(word.feature_array) for word in cognates.values()]
         for l in ls:
             if l != l_lat:
                 errors += 1
-                print(id, l_lat, ls, [char.get_char() for char in word.get_chars()])
+                print(id, l_lat, ls, [char.char for char in word.chars])
 
 if errors == 0:
     print("Everything is fine!")
