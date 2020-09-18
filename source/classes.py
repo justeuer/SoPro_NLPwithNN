@@ -473,12 +473,12 @@ class LevenshteinDistance(object):
         self.__pred = pred
         self.__word_lengths = [len(word) for word in self.__true]
         self.__upper_bound = upper_bound
-        self.__distances = sorted([self._levenshtein(t, p) for t, p in zip(true, pred)], reverse=True)
+        self.__distances = sorted([self._calculate_levenshtein(t, p) for t, p in zip(true, pred)], reverse=True)
         self.__mean_distance = np.mean(self.__distances)
         self.__mean_distance_normalized = self._mean_distance_norm()
-        self.__percentiles = self._percentiles()
+        self.__percentiles = self._calculate_percentiles()
 
-    def _levenshtein(self, t: str, p: str):
+    def _calculate_levenshtein(self, t: str, p: str):
         """
         Calculates the Levenshtein distance between the latin word and the reconstructed word. Uses the
         Levenshtein distance function from NLTK.
@@ -496,7 +496,7 @@ class LevenshteinDistance(object):
         distance = nltk.edit_distance(t, p)
         return min(distance, self.__upper_bound)
 
-    def _percentiles(self):
+    def _calculate_percentiles(self):
         """
         Calculates Levenshtein distance percentiles
         Returns
@@ -546,6 +546,10 @@ class LevenshteinDistance(object):
             print("Distance={}, {}".format(d, perc))
 
     @property
+    def percentiles(self):
+        return self.__percentiles
+
+    @property
     def distances(self):
         return Counter(self.__distances)
 
@@ -556,6 +560,7 @@ class LevenshteinDistance(object):
     @property
     def mean_distance_normalized(self):
         return self.__mean_distance_normalized
+
 
 if __name__ == '__main__':
     asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='utf-8')

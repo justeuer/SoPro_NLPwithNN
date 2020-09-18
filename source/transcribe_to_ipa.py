@@ -53,7 +53,7 @@ def main():
     langs = [lang.lower() for lang in langs]
 
     # build header
-    header_str = "id,concept"
+    header_str = "id,concept,"
     for lang in langs:
         header_str += lang + ","
     header_str = header_str[:len(header_str)-1] + "\n"

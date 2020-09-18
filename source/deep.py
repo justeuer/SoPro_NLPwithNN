@@ -18,7 +18,7 @@ CONCEPT_COLUMN = 1
 BATCH_SIZE = 1
 MODELS = ['ipa', 'asjp', 'latin']
 
-plots_dir = Path("../out/plots")
+plots_dir = Path("../out/plots_swadesh_deep")
 if not plots_dir.exists():
     plots_dir.mkdir(parents=True)
 
@@ -112,14 +112,13 @@ def main():
     langs = cols[2:]
 
     for li, line in enumerate(data[HEADER_ROW:]):
-        print(li, line)
         if aligned:
             if line.replace("ā", "a") == "" or li % 2 != 0:
                 continue
         else:
             if line.replace("ā", "a") == "" or li % 2 == 0:
                 continue
-        row_split = line.replace("ā", "a").split(COLUMN_SEPARATOR)
+        row_split = line.split(COLUMN_SEPARATOR)
         id = row_split[ID_COLUMN]
         concept = row_split[CONCEPT_COLUMN]
         words = row_split[CONCEPT_COLUMN + 1:]
@@ -178,6 +177,8 @@ def main():
                     output_characters.append(alphabet.get_char_by_vector(output))
             words_pred.append("".join(output_characters))
             words_true.append(str(cognate_set.ancestor_word))
+            #if batch % 100 == 0:
+            #    print("Batch [{}/{}]".format(batch, len(cognate_sets)))
         # calculate mean epoch loss
         mean_loss = np.mean(batch_losses)
         epoch_losses.append(mean_loss)
@@ -188,10 +189,11 @@ def main():
         ld.print_percentiles()
         # plot if it's the last epoch
         if epoch == epochs:
-            outfile =  "../out/plots/deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
-            title = "Model: deep, {}, {}, {}".format(args.model, "aligned" if aligned else "", "orthographic" if ortho else "")
+            outfile = "../out/plots_swadesh_deep/deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
+            title = "Model: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
             plot_results(title=title,
-                         distances={str(d): count for d, count in ld.distances.items()},
+                         distances={"=<" + str(d): count for d, count in ld.distances.items()},
+                         percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
                          mean_dist=ld.mean_distance,
                          mean_dist_norm=ld.mean_distance_normalized,
                          losses=epoch_losses,
