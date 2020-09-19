@@ -10,7 +10,7 @@ import time
 import sys
 
 from classes import Alphabet, CognateSet, LevenshteinDistance
-from utils import create_model
+from utils import create_model, create_test_model
 from plots import plot_results
 
 # create output dir
@@ -127,11 +127,17 @@ def train():
     print("alphabet:")
     print(alphabet)
 
+    context_dim = 128
+    cells = [
+        keras.layers.LSTMCell(context_dim),
+        keras.layers.LSTMCell(context_dim),
+        keras.layers.LSTMCell(context_dim),
+        keras.layers.LSTMCell(context_dim),
+        keras.layers.LSTMCell(context_dim)
+    ]
     # initialize model
-    model, optimizer, loss_object = create_model(input_dim=alphabet.get_feature_dim(),
-                                                 embedding_dim=28,
-                                                 context_dim=128,
-                                                 output_dim=alphabet.get_feature_dim())
+    model, optimizer, loss_object = create_test_model(input_dim=alphabet.feature_dim,
+                                                 output_dim=alphabet.feature_dim)
 
     model.summary()
 
@@ -238,7 +244,7 @@ def train():
                 print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, i, len(cognate_sets)))
             # clear the list of output characters so we can create another word
             output_characters.clear()
-            #print("Batch {}, mean loss={}".format(i, np.mean(batch_losses)))
+            print("Batch {}, mean loss={}".format(i, np.mean(batch_losses)))
         # calculate distances
         ld = LevenshteinDistance(true=words_true,
                                  pred=words_pred)

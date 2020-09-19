@@ -3,6 +3,7 @@ from numpy.linalg import norm
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, Sequential
+from tensorflow.keras import backend as K
 from typing import Tuple
 
 
@@ -21,11 +22,8 @@ def create_model(input_dim,
 
 
 def create_test_model(input_dim,
-                      hidden_dim,
-                      n_hidden,
-                      context_dim,
                       output_dim):
-    model = TestModel(input_dim=input_dim, hidden_dim=hidden_dim, n_hidden=n_hidden, context_dim=context_dim, output_dim=output_dim)
+    model = TestModel(input_dim=input_dim, output_dim=output_dim)
     optimizer = tf.keras.optimizers.Adam()
     # cosine similarity since that is also the function we use to retrieve the chars
     # from the model output.
@@ -36,38 +34,33 @@ def create_test_model(input_dim,
 
 class TestModel(tf.keras.Model):
     """
-    Recurrent network. We create a separate layer for each language, and then connect them to predict the Latin
-    character. 
+    Deep feedforward network. We agglutinate all character vectors at one position
+    into a single vector and then feed that into 2 fully connected layers (so technically
+    there is only one real 'deep' layer.
     """
-    def __init__(self, input_dim, hidden_dim, n_hidden, context_dim, output_dim):
+    def __init__(self, input_dim, cells, output_dim):
         super(TestModel, self).__init__()
-        # project into a single vector
-        self.flatten = layers.Flatten(input_shape=input_dim)
+        #initialize embedding layer
+       # self.embedding = layers.Embedding(input_dim=input_dim, output_dim=embedding_dim)
+        self.inputs = keras.Input((None, input_dim))
         # create as many hidden layers as specified & append them to an internal list
-        self.dense_layers = []
-        for _ in range(n_hidden):
-            self.dense_layers.append(layers.Dense(hidden_dim, activation='relu'))
-        #create recurrent layer
-        #cell = MinimalRNNCell(context_dim)
-        #x = keras.Input((None, 5))
-        #layer = RNN(cell)
-        #y = layer(x)
-        #self.recurrent_layer = tf.keras.layers.RNN(cell)
+        self.rnn = layers.RNN(cells=cells, inputs=input_dim)
         # we chose sigmoid as the activation function since the desired output is a multi-
         # hot vector (or a one-hot vector in the case of char embeddings)
-        self.out = layers.Dense(output_dim, activation='sigmoid')
+        self.out = layers.Dense(output_dim=output_dim, activation='sigmoid')
 
-    def call(self, inputs, **kwargs):
-        # projection
-        x = self.flatten(inputs)
-        # apply fully connected layers
-        for dl in self.dense_layers:
-
-            x = dl(x)
-            print("flattened")
-            print(x.shape)
-            #contatted = tf.keras.layers.Concatenate()(dl)
+    def call(self, inputs, cells, context_dim, **kwargs):
+        cells = [
+        keras.layers.LSTMCell(context_dim),
+        keras.layers.LSTMCell(context_dim),
+        keras.layers.LSTMCell(context_dim),
+        keras.layers.LSTMCell(context_dim),
+        keras.layers.LSTMCell(context_dim)
+    ]
+        inputs = keras.Input((None, inpuinput_dim))
+        x = keras.layers.RNN(cells)(inputs)
         return self.out(x)
+
 
 
 def create_deep_model(input_dim,

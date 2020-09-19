@@ -1,15 +1,12 @@
 from argparse import ArgumentParser
 import numpy as np
 from pathlib import Path
-import tensorflow as tf
-from tensorflow.keras.optimizers import SGD
 
 from utils import create_deep_model
 from classes import Alphabet, CognateSet, LevenshteinDistance
 from plots import plot_results
 
-# set random seed for weights
-tf.random.set_seed(seed=42)
+
 encoding = None
 HEADER_ROW = 0
 COLUMN_SEPARATOR = ","
@@ -19,9 +16,11 @@ CONCEPT_COLUMN = 1
 BATCH_SIZE = 1
 MODELS = ['ipa', 'asjp', 'latin']
 
-plots_dir = Path("../out/plots")
+plots_dir = Path("../out/plots_swadesh_deep")
 if not plots_dir.exists():
     plots_dir.mkdir(parents=True)
+
+results_dir = Path("../out/results")
 
 
 def parse_args():
@@ -38,7 +37,7 @@ def parse_args():
                         type=str,
                         default='latin',
                         help="column corresponding to the proto-form")
-    parser.add_argument("--orthographic",
+    parser.add_argument("--ortho",
                         default=0,
                         action='count',
                         help="switch between orthographic and feature-based model")
@@ -54,16 +53,27 @@ def parse_args():
                         type=int,
                         default=1,
                         help="number of hidden layers")
+    parser.add_argument("--out_tag",
+                        type=str,
+                        default="swadesh",
+                        help="tag for output directories")
     return parser.parse_args()
 
 
 def main():
+
     global encoding
+
     args = parse_args()
+
     # determine whether to use the aligned or unaligned data
     assert args.aligned in [0, 1], "Too many instances of --aligned switch, should be 0 or 1"
     aligned = bool(args.aligned)
-    # load data
+
+    # and decide between feature encodings and character embeddings
+    assert args.ortho in [0, 1], "Too many instances of --ortho switch, should be 0 or 1"
+    ortho = bool(args.ortho)
+
     # load data
     data_file = None
     if args.data == "ipa":
@@ -85,17 +95,38 @@ def main():
         alphabet_file = Path("../data/alphabets/asjp.csv")
     # load data from file
     assert alphabet_file.exists() and alphabet_file.is_file(), "Alphabet file {} does not exist".format(alphabet_file)
-    alphabet = Alphabet(alphabet_file, encoding=encoding, orthographic=False)
+    alphabet = Alphabet(alphabet_file, encoding=encoding, ortho=ortho)
+
+    # number of epochs
     assert isinstance(args.epochs, int), "Epochs not int, but {}".format(type(args.epochs))
     assert args.epochs > 0, "Epochs out of range: {}".format(args.epochs)
     epochs = args.epochs
+
     # number of hidden layers
     assert args.n_hidden > 0, "Number of hidden layers should be at least 1 ;)"
     n_hidden = args.n_hidden
+
+    # determine output directories, create them if they do not exist
+    out_tag = "_{}".format(args.out_tag)
+    plots_dir = Path("../out/plots{}_deep".format(out_tag))
+    if not plots_dir.exists():
+        plots_dir.mkdir(parents=True)
+    results_dir = Path("../out/results{}_deep".format(out_tag))
+    if not results_dir.exists():
+        results_dir.mkdir(parents=True)
+    # create file for results
+    result_file_path = results_dir / "deep_{}{}{}.txt".format(args.model,
+                                                         "_aligned" if aligned else "",
+                                                         "_ortho" if ortho else "")
+    result_file_path.touch()
+    result_file = result_file_path.open('w', encoding=encoding)
+
     # determine ancestor
     ancestor = args.ancestor
-    print("alphabet:")
-    print(alphabet)
+
+    # print alphabet
+    # print("alphabet:")
+    # print(alphabet)
 
     # create cognate sets
 
@@ -105,12 +136,17 @@ def main():
     cols = data[HEADER_ROW].split(COLUMN_SEPARATOR)
     langs = cols[2:]
 
+    # import tensorflow here to comply with the wiki entry https://wiki.lsv.uni-saarland.de/doku.php?id=cluster
+    import tensorflow as tf
+    # set random seed for weights
+    tf.random.set_seed(seed=42)
+
     for li, line in enumerate(data[HEADER_ROW:]):
         if aligned:
-            if line == "" or li % 2 != 0:
+            if line.replace("ā", "a") == "" or li % 2 != 0:
                 continue
         else:
-            if line == "" or li % 2 == 0:
+            if line.replace("ā", "a") == "" or li % 2 == 0:
                 continue
         row_split = line.split(COLUMN_SEPARATOR)
         id = row_split[ID_COLUMN]
@@ -127,19 +163,17 @@ def main():
                                  alphabet=alphabet)
         cognate_sets.append(cognate_set)
 
-    # cognate_sets = cognate_sets[:10]
-    batches = len(cognate_sets)
-
     # input shape is a vector of size (number of languages without the ancestor * number of features)
-    input_dim = (1, len(langs) - 1, alphabet.get_feature_dim())
+    print("langs", langs)
+    input_dim = (1, len(langs) - 1, alphabet.feature_dim)
+    print(input_dim)
     # output dim is the number of characters (for classification)
-    output_dim = alphabet.get_feature_dim()
+    output_dim = alphabet.feature_dim
     # define model
     model, optimizer, loss_object = create_deep_model(input_dim=input_dim,
                                                       hidden_dim=256,
                                                       n_hidden=n_hidden,
                                                       output_dim=output_dim)
-
     model.summary()
 
     words_true = []
@@ -153,7 +187,6 @@ def main():
         words_pred.clear()
         batch_losses.clear()
         for batch, cognate_set in enumerate(cognate_sets):
-            print(cognate_set)
             output_characters = []
             for lang_array in cognate_set:
                 target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
@@ -170,9 +203,12 @@ def main():
                     batch_losses.append(float(loss))
                     gradients = tape.gradient(loss, model.trainable_weights)
                     optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                    output_characters.append(alphabet.get_char_by_feature_vector(output))
+                    output_characters.append(alphabet.get_char_by_vector(output))
             words_pred.append("".join(output_characters))
-            words_true.append(str(cognate_set.get_ancestor()))
+            words_true.append(str(cognate_set.ancestor_word))
+            if batch % 100 == 0:
+                print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, batch, len(cognate_sets)))
+        # calculate mean epoch loss
         mean_loss = np.mean(batch_losses)
         epoch_losses.append(mean_loss)
         print("Epoch[{}]/[{}], mean batch loss = {}".format(epoch, epochs, mean_loss))
@@ -180,13 +216,25 @@ def main():
         ld = LevenshteinDistance(true=words_true, pred=words_pred)
         ld.print_distances()
         ld.print_percentiles()
+        # plot if it's the last epoch
         if epoch == epochs:
-            plot_results(title="Model: feedforward, data: {}{}".format(args.model, "-aligned" if aligned else ""),
-                         distances={str(d): count for d, count in ld.get_distances.items()},
-                         mean_dist=ld.get_mean_dist,
-                         mean_dist_norm=ld.get_mean_dist_normalized,
+            outfile = "../out/plots_swadesh_deep/deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
+            title = "Model: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
+            plot_results(title=title,
+                         distances={"=<" + str(d): count for d, count in ld.distances.items()},
+                         percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
+                         mean_dist=ld.mean_distance,
+                         mean_dist_norm=ld.mean_distance_normalized,
                          losses=epoch_losses,
-                         outfile=Path("../out/plots/{}{}_plot.jpg".format(args.model, "_aligned" if aligned else "")))
+                         outfile=Path(outfile))
+            # save reconstructed words (but only if the edit distance is at least one)
+            import nltk
+            for t, p in zip(words_true, words_pred):
+                distance = nltk.edit_distance(t, p)
+                if distance > 0:
+                    line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
+                    result_file.write(line)
+            result_file.close()
 
 
 if __name__ == '__main__':
