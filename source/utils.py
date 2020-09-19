@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.linalg import norm
 import tensorflow as tf
+from tensorflow import keras
 from tensorflow.keras import layers, Sequential
 from typing import Tuple
 
@@ -12,20 +13,71 @@ def create_model(input_dim,
     model = Sequential()
     model.add(layers.Embedding(input_dim=input_dim, output_dim=embedding_dim))
     model.add(layers.SimpleRNN(context_dim))
-    model.add(layers.Dense(output_dim))
+    model.add(layers.Dense(output_dim, activation='sigmoid'))
     optimizer = tf.keras.optimizers.SGD()
     loss_object = tf.keras.losses.CosineSimilarity()
     model.compile(loss="cosine_similarity", optimizer=optimizer)
     return model, optimizer, loss_object
 
 
+def create_test_model(input_dim,
+                      hidden_dim,
+                      n_hidden,
+                      context_dim,
+                      output_dim):
+    model = TestModel(input_dim=input_dim, hidden_dim=hidden_dim, n_hidden=n_hidden, context_dim=context_dim, output_dim=output_dim)
+    optimizer = tf.keras.optimizers.Adam()
+    # cosine similarity since that is also the function we use to retrieve the chars
+    # from the model output.
+    loss_object = tf.keras.losses.CosineSimilarity()
+    model.compile(loss="cosine_similarity", optimizer=optimizer)
+    model.build(input_shape=input_dim)
+    return model, optimizer, loss_object
+
+class TestModel(tf.keras.Model):
+    """
+    Recurrent network. We create a separate layer for each language, and then connect them to predict the Latin
+    character. 
+    """
+    def __init__(self, input_dim, hidden_dim, n_hidden, context_dim, output_dim):
+        super(TestModel, self).__init__()
+        # project into a single vector
+        self.flatten = layers.Flatten(input_shape=input_dim)
+        # create as many hidden layers as specified & append them to an internal list
+        self.dense_layers = []
+        for _ in range(n_hidden):
+            self.dense_layers.append(layers.Dense(hidden_dim, activation='relu'))
+        #create recurrent layer
+        #cell = MinimalRNNCell(context_dim)
+        #x = keras.Input((None, 5))
+        #layer = RNN(cell)
+        #y = layer(x)
+        #self.recurrent_layer = tf.keras.layers.RNN(cell)
+        # we chose sigmoid as the activation function since the desired output is a multi-
+        # hot vector (or a one-hot vector in the case of char embeddings)
+        self.out = layers.Dense(output_dim, activation='sigmoid')
+
+    def call(self, inputs, **kwargs):
+        # projection
+        x = self.flatten(inputs)
+        # apply fully connected layers
+        for dl in self.dense_layers:
+
+            x = dl(x)
+            print("flattened")
+            print(x.shape)
+            #contatted = tf.keras.layers.Concatenate()(dl)
+        return self.out(x)
+
+
 def create_deep_model(input_dim,
                       hidden_dim,
                       n_hidden,
-                      units,
                       output_dim):
-    model = DeepModel(input_dim=input_dim, hidden_dim=hidden_dim, n_hidden=n_hidden, units=units, output_dim=output_dim)
+    model = DeepModel(input_dim=input_dim, hidden_dim=hidden_dim, n_hidden=n_hidden, output_dim=output_dim)
     optimizer = tf.keras.optimizers.Adam()
+    # cosine similarity since that is also the function we use to retrieve the chars
+    # from the model output.
     loss_object = tf.keras.losses.CosineSimilarity()
     model.compile(loss="cosine_similarity", optimizer=optimizer)
     model.build(input_shape=input_dim)
@@ -33,21 +85,29 @@ def create_deep_model(input_dim,
 
 
 class DeepModel(tf.keras.Model):
-    def __init__(self, input_dim, hidden_dim, n_hidden, units, output_dim):
+    """
+    Deep feedforward network. We agglutinate all character vectors at one position
+    into a single vector and then feed that into 2 fully connected layers (so technically
+    there is only one real 'deep' layer.
+    """
+    def __init__(self, input_dim, hidden_dim, n_hidden, output_dim):
         super(DeepModel, self).__init__()
+        # project into a single vector
         self.flatten = layers.Flatten(input_shape=input_dim)
+        # create as many hidden layers as specified & append them to an internal list
         self.dense_layers = []
         for _ in range(n_hidden):
             self.dense_layers.append(layers.Dense(hidden_dim, activation='relu'))
-        self.recursive_layer = layers.SimpleRNN(units=128)
-            #, input_shape=(1, 256))
+        # we chose sigmoid as the activation function since the desired output is a multi-
+        # hot vector (or a one-hot vector in the case of char embeddings)
         self.out = layers.Dense(output_dim, activation='sigmoid')
 
     def call(self, inputs, **kwargs):
+        # projection
         x = self.flatten(inputs)
+        # apply fully connected layers
         for dl in self.dense_layers:
             x = dl(x)
-        #x = self.recursive_layer(x)
         return self.out(x)
 
 
@@ -55,18 +115,28 @@ def cos_sim(x: np.array, y: np.array):
     return np.dot(x, y) / (norm(x) * norm(y))
 
 
-def build_model(input_dim, embedding_dim, lstm_dim, output_dim, langs):
-    input_layers = []
-    lstm_layers = []
-    for lang in langs:
-        input_layer = tf.keras.layers.Embedding(input_dim=input_dim, output_dim=embedding_dim, name=lang)
-        lstm_layers.append(tf.keras.layers.LSTM(lstm_dim, return_sequences=False)(input_layer))
-        input_layers.append(input_layer)
+#class taken from https://www.tensorflow.org/api_docs/python/tf/keras/layers/RNN
+class MinimalRNNCell(keras.layers.Layer):
 
-    output = tf.keras.layers.concatenate(inputs=lstm_layers, axis=1)
-    output = tf.keras.layers.Dense(output_dim, activation='relu', name='output')(output)
-    model = tf.keras.models.Model(inputs=input_layers, output=[output])
+    def __init__(self, units, **kwargs):
+        self.units = units
+        self.state_size = units
+        super(MinimalRNNCell, self).__init__(**kwargs)
 
-    optimizer = tf.keras.optimizers.Adam()
-    model.compile(loss='cosine-similarity', optimizer=optimizer)
-    return model, optimizer
+    def build(self, input_shape):
+        self.kernel = self.add_weight(shape=(input_shape[-1], self.units),
+                                      initializer='uniform',
+                                      name='kernel')
+        self.recurrent_kernel = self.add_weight(
+            shape=(self.units, self.units),
+            initializer='uniform',
+            name='recurrent_kernel')
+        self.built = True
+
+    def call(self, inputs, states):
+        prev_output = states[0]
+        h = K.dot(inputs, self.kernel)
+        output = h + K.dot(prev_output, self.recurrent_kernel)
+        return output, [output]
+
+

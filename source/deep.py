@@ -6,6 +6,7 @@ from tensorflow.keras.optimizers import SGD
 
 from utils import create_deep_model
 from classes import Alphabet, CognateSet, LevenshteinDistance
+from plots import plot_results
 
 # set random seed for weights
 tf.random.set_seed(seed=42)
@@ -18,12 +19,16 @@ CONCEPT_COLUMN = 1
 BATCH_SIZE = 1
 MODELS = ['ipa', 'asjp', 'latin']
 
+plots_dir = Path("../out/plots")
+if not plots_dir.exists():
+    plots_dir.mkdir(parents=True)
+
 
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--data",
                         type=str,
-                        default="../data/romance_asjp_full.csv",
+                        default="../data/romance_ipa_full.csv",
                         help="file containing the cognate sets")
     parser.add_argument("--model",
                         type=str,
@@ -59,7 +64,14 @@ def main():
     assert args.aligned in [0, 1], "Too many instances of --aligned switch, should be 0 or 1"
     aligned = bool(args.aligned)
     # load data
-    data_file = Path(args.data)
+    # load data
+    data_file = None
+    if args.data == "ipa":
+        encoding = 'utf-16'
+        data_file = Path("../data/ciobanu/romance_ipa_auto.csv")
+    elif args.data == "asjp":
+        encoding = 'ascii'
+        data_file = Path("../data/ciobanu/romance_asjp_auto.csv")
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     # determine model
     assert args.model in MODELS, "Model should be one of {}".format(MODELS)
@@ -85,7 +97,6 @@ def main():
     print("alphabet:")
     print(alphabet)
 
-
     # create cognate sets
 
     cognate_sets = []
@@ -110,40 +121,39 @@ def main():
         for lang, word in zip(langs, words):
             cognate_dict[lang] = alphabet.translate(word)
         cognate_set = CognateSet(id=id,
-                        concept=concept,
-                        ancestor=ancestor,
-                        cognate_dict=cognate_dict,
-                        alphabet=alphabet)
+                                 concept=concept,
+                                 ancestor=ancestor,
+                                 cognate_dict=cognate_dict,
+                                 alphabet=alphabet)
         cognate_sets.append(cognate_set)
 
-    #cognate_sets = cognate_sets[:10]
+    # cognate_sets = cognate_sets[:10]
     batches = len(cognate_sets)
 
     # input shape is a vector of size (number of languages without the ancestor * number of features)
     input_dim = (1, len(langs) - 1, alphabet.get_feature_dim())
     # output dim is the number of characters (for classification)
     output_dim = alphabet.get_feature_dim()
-    #context dim is the 
-    context_dim = 128
     # define model
     model, optimizer, loss_object = create_deep_model(input_dim=input_dim,
                                                       hidden_dim=256,
                                                       n_hidden=n_hidden,
-                                                      units=context_dim,
                                                       output_dim=output_dim)
 
     model.summary()
 
-
     words_true = []
     words_pred = []
+    epoch_losses = []
     batch_losses = []
 
     # train
-    for epoch in range(1, epochs+1):
+    for epoch in range(1, epochs + 1):
         words_true.clear()
         words_pred.clear()
+        batch_losses.clear()
         for batch, cognate_set in enumerate(cognate_sets):
+            print(cognate_set)
             output_characters = []
             for lang_array in cognate_set:
                 target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
@@ -154,7 +164,7 @@ def main():
                 data = np.array(data)
                 data = tf.dtypes.cast(data, tf.float32)
                 data = tf.reshape(data, (1, -1))
-                with tf.GradientTape(persistent=True) as tape:
+                with tf.GradientTape() as tape:
                     output = model(data)
                     loss = loss_object(target, output)
                     batch_losses.append(float(loss))
@@ -163,14 +173,20 @@ def main():
                     output_characters.append(alphabet.get_char_by_feature_vector(output))
             words_pred.append("".join(output_characters))
             words_true.append(str(cognate_set.get_ancestor()))
-            mean_loss = np.mean(batch_losses)
-            if batch % 10 == 0:
-                print("Epoch[{}]/[{}], Batch[{}]/[{}], mean loss = {}".format(epoch, epochs, batch, batches, mean_loss))
-
+        mean_loss = np.mean(batch_losses)
+        epoch_losses.append(mean_loss)
+        print("Epoch[{}]/[{}], mean batch loss = {}".format(epoch, epochs, mean_loss))
         # calculate levenshtein distance
         ld = LevenshteinDistance(true=words_true, pred=words_pred)
         ld.print_distances()
         ld.print_percentiles()
+        if epoch == epochs:
+            plot_results(title="Model: feedforward, data: {}{}".format(args.model, "-aligned" if aligned else ""),
+                         distances={str(d): count for d, count in ld.get_distances.items()},
+                         mean_dist=ld.get_mean_dist,
+                         mean_dist_norm=ld.get_mean_dist_normalized,
+                         losses=epoch_losses,
+                         outfile=Path("../out/plots/{}{}_plot.jpg".format(args.model, "_aligned" if aligned else "")))
 
 
 if __name__ == '__main__':
