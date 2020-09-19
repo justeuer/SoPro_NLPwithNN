@@ -20,6 +20,8 @@ plots_dir = Path("../out/plots_swadesh_deep")
 if not plots_dir.exists():
     plots_dir.mkdir(parents=True)
 
+results_dir = Path("../out/results")
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -51,6 +53,10 @@ def parse_args():
                         type=int,
                         default=1,
                         help="number of hidden layers")
+    parser.add_argument("--out_tag",
+                        type=str,
+                        default="swadesh",
+                        help="tag for output directories")
     return parser.parse_args()
 
 
@@ -79,8 +85,6 @@ def main():
         encoding = 'utf-16'
         alphabet_file = Path("../data/alphabets/ipa.csv")
     elif args.model == "asjp":
-
-
         encoding = 'ascii'
         alphabet_file = Path("../data/alphabets/asjp.csv")
     # load data from file
@@ -96,12 +100,27 @@ def main():
     assert args.n_hidden > 0, "Number of hidden layers should be at least 1 ;)"
     n_hidden = args.n_hidden
 
+    # determine output directories, create them if they do not exist
+    out_tag = "_{}".format(args.out_tag)
+    plots_dir = Path("../out/plots{}_deep".format(out_tag))
+    if not plots_dir.exists():
+        plots_dir.mkdir(parents=True)
+    results_dir = Path("../out/results{}_deep".format(out_tag))
+    if not results_dir.exists():
+        results_dir.mkdir(parents=True)
+    # create file for results
+    result_file_path = results_dir / "deep_{}{}{}.txt".format(args.model,
+                                                         "_aligned" if aligned else "",
+                                                         "_ortho" if ortho else "")
+    result_file_path.touch()
+    result_file = result_file_path.open('w', encoding=encoding)
+
     # determine ancestor
     ancestor = args.ancestor
 
     # print alphabet
-    print("alphabet:")
-    print(alphabet)
+    # print("alphabet:")
+    # print(alphabet)
 
     # create cognate sets
 
@@ -149,7 +168,6 @@ def main():
                                                       hidden_dim=256,
                                                       n_hidden=n_hidden,
                                                       output_dim=output_dim)
-
     model.summary()
 
     words_true = []
@@ -203,6 +221,14 @@ def main():
                          mean_dist_norm=ld.mean_distance_normalized,
                          losses=epoch_losses,
                          outfile=Path(outfile))
+            # save reconstructed words (but only if the edit distance is at least one)
+            import nltk
+            for t, p in zip(words_true, words_pred):
+                distance = nltk.edit_distance(t, p)
+                if distance > 0:
+                    line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
+                    result_file.write(line)
+            result_file.close()
 
 
 if __name__ == '__main__':
