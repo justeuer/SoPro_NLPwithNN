@@ -57,7 +57,7 @@ def parser_args():
                         help="switch between aligned and unaligned model")
     parser.add_argument("--epochs",
                         type=int,
-                        default=10,
+                        default=2,
                         help="number of epochs")
     return parser.parse_args()
 
@@ -156,9 +156,9 @@ def train():
     valid_data = cognate_sets[split_index:]
     print("train size: {}".format(len(train_data)))
     print("valid size: {}".format(len(valid_data)))
-    cognate_sets = cognate_sets[10:30]
-    print("cognate_sets")
-    print(cognate_sets)
+   # cognate_sets = cognate_sets[10:30]
+   # print("cognate_sets in ral")
+   # print(cognate_sets)
 
     words_true = []
     words_pred = []
