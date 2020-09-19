@@ -4,18 +4,19 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from argparse import ArgumentParser
 from pathlib import Path
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 import tensorflow as tf
 import time
 import sys
 
 from classes import Alphabet, CognateSet, LevenshteinDistance
 from utils import create_model
+from plots import plot_results
 
 # create output dir
-out_dir = Path("../data/out/ciobanu")
-if not out_dir.exists():
-    out_dir.mkdir()
+# out_dir = Path("../data/out/ciobanu")
+# if not out_dir.exists():
+#    out_dir.mkdir()
 
 # set random seed for weights
 tf.random.set_seed(seed=42)
@@ -47,7 +48,7 @@ def parser_args():
                         type=str,
                         default='latin',
                         help="column corresponding to the proto-form")
-    parser.add_argument("--orthographic",
+    parser.add_argument("--ortho",
                         default=0,
                         action='count',
                         help="switch between orthographic and feature-based model")
@@ -59,26 +60,34 @@ def parser_args():
                         type=int,
                         default=2,
                         help="number of epochs")
+    parser.add_argument("--out_tag",
+                        type=str,
+                        default="swadesh",
+                        help="tag for output directories")
     return parser.parse_args()
 
 
 def train():
+    
+    # Command line call I used:
+    # python ciobanu_rnn.py --data=ipa --model=ipa --epochs=10 --out_tag=test --model=ipa --ancestor=ancestor
+
     global encoding
     args = parser_args()
     # determine whether the model should use feature encodings or character embeddings
-    assert args.orthographic in [0, 1], "Too many instances of --orthographic switch, should be 0 or 1"
-    orthographic = bool(args.orthographic)
+    assert args.ortho in [0, 1], "Too many instances of --orthographic switch, should be 0 or 1"
+    ortho = bool(args.ortho)
     # determine whether to use the aligned or unaligned data
     assert args.aligned in [0, 1], "Too many instances of --aligned switch, should be 0 or 1"
     aligned = bool(args.aligned)
     # load data
     data_file = None
     if args.data == "ipa":
-    	encoding = 'utf-16'
-    	data_file = Path("../data/ciobanu/romance_ipa_auto.csv")
+        encoding = 'utf-16'
+        data_file = Path("../data/romance_ipa_auto.csv")
     elif args.data == "asjp":
-    	encoding = 'ascii'
-    	data_file = Path("../data/ciobanu/romance_asjp_auto.csv")
+        encoding = 'ascii'
+        data_file = Path("../data/romance_asjp_auto.csv")
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     # determine model
     assert args.model in MODELS, "Model should be one of {}".format(MODELS)
@@ -92,10 +101,29 @@ def train():
         alphabet_file = Path("../data/alphabets/asjp.csv")
     # load data from file
     assert alphabet_file.exists() and alphabet_file.is_file(), "Alphabet file {} does not exist".format(alphabet_file)
-    alphabet = Alphabet(alphabet_file, encoding=encoding, orthographic=orthographic)
+    alphabet = Alphabet(alphabet_file, encoding=encoding, ortho=ortho)
     assert isinstance(args.epochs, int), "Epochs not int, but {}".format(type(args.epochs))
     assert args.epochs > 0, "Epochs out of range: {}".format(args.epochs)
     epochs = args.epochs
+
+    # ancestor
+    ancestor = args.ancestor
+
+    # determine output directories, create them if they do not exist
+    out_tag = "_{}".format(args.out_tag)
+    plots_dir = Path("../out/plots{}_deep".format(out_tag))
+    if not plots_dir.exists():
+        plots_dir.mkdir(parents=True)
+    results_dir = Path("../out/results{}_deep".format(out_tag))
+    if not results_dir.exists():
+        results_dir.mkdir(parents=True)
+    # create file for results
+    result_file_path = results_dir / "deep_{}{}{}.txt".format(args.model,
+                                                              "_aligned" if aligned else "",
+                                                              "_ortho" if ortho else "")
+    result_file_path.touch()
+    result_file = result_file_path.open('w', encoding=encoding)
+
     print("alphabet:")
     print(alphabet)
 
@@ -108,7 +136,7 @@ def train():
     model.summary()
 
     print("data_file: {}".format(data_file.absolute()))
-    print("model: {}, orthographic={}, aligned={}".format(args.model, orthographic, aligned))
+    print("model: {}, orthographic={}, aligned={}".format(args.model, ortho, aligned))
     print("alphabet: {}, read from {}".format(args.model, alphabet_file.absolute()))
     print("epochs: {}".format(epochs))
 
@@ -133,17 +161,17 @@ def train():
         id = row_split[ID_COLUMN]
         concept = row_split[CONCEPT_COLUMN]
         words = row_split[CONCEPT_COLUMN + 1:]
-        print("words")
-        print(words)
+        # print("words")
+        # print(words)
         cognate_dict = {}
         assert len(langs) == len(words), "Langs / Words mismatch, expected {}, got {}".format(len(langs), len(words))
         for lang, word in zip(langs, words):
-            print("lang, word")
-            print(lang, word)
+            # print("lang, word")
+            # print(lang, word)
             cognate_dict[lang] = alphabet.translate(word)
         cs = CognateSet(id=id,
                         concept=concept,
-                        ancestor='latin',
+                        ancestor=ancestor,
                         cognate_dict=cognate_dict,
                         alphabet=alphabet)
         cognate_sets.append(cs)
@@ -156,9 +184,9 @@ def train():
     valid_data = cognate_sets[split_index:]
     print("train size: {}".format(len(train_data)))
     print("valid size: {}".format(len(valid_data)))
-   # cognate_sets = cognate_sets[10:30]
-   # print("cognate_sets in ral")
-   # print(cognate_sets)
+    # cognate_sets = cognate_sets[10:30]
+    # print("cognate_sets in ral")
+    # print(cognate_sets)
 
     words_true = []
     words_pred = []
@@ -203,7 +231,7 @@ def train():
                     output_characters.append(output_char)
             # append the reconstructed word and the ancestor to the true/pred lists
             words_pred.append("".join(output_characters))
-            words_true.append(str(cs.get_ancestor()))
+            words_true.append(str(cs.ancestor))
             # clear the list of output characters so we can create another word
             output_characters.clear()
             print("Batch {}, mean loss={}".format(i, np.mean(batch_losses)))
@@ -214,14 +242,24 @@ def train():
         print("Mean loss={}".format(epoch, np.mean(epoch_losses)))
         ld.print_distances()
         ld.print_percentiles()
-
-    # do so again after training has finished, but now also save the plots
-    ld = LevenshteinDistance(true=words_true,
-                             pred=words_pred)
-    ld.print_distances()
-    ld.print_percentiles()
-    ld.plot_distances(Path("../data/out/distances.png"))
-    ld.plot_percentiles(Path("../data/out/percentiles.png"))
+        if epoch == epochs:
+            outfile = "../out/plots_swadesh_deep/deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
+            title = "Model: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
+            plot_results(title=title,
+                         distances={"=<" + str(d): count for d, count in ld.distances.items()},
+                         percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
+                         mean_dist=ld.mean_distance,
+                         mean_dist_norm=ld.mean_distance_normalized,
+                         losses=epoch_losses,
+                         outfile=Path(outfile))
+            # save reconstructed words (but only if the edit distance is at least one)
+            import nltk
+            for t, p in zip(words_true, words_pred):
+                distance = nltk.edit_distance(t, p)
+                if distance > 0:
+                    line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
+                    result_file.write(line)
+            result_file.close()
 
 
 if __name__ == '__main__':
