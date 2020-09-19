@@ -1,14 +1,12 @@
 from argparse import ArgumentParser
 import numpy as np
 from pathlib import Path
-import tensorflow as tf
 
 from utils import create_deep_model
 from classes import Alphabet, CognateSet, LevenshteinDistance
 from plots import plot_results
 
-# set random seed for weights
-tf.random.set_seed(seed=42)
+
 encoding = None
 HEADER_ROW = 0
 COLUMN_SEPARATOR = ","
@@ -57,7 +55,9 @@ def parse_args():
 
 
 def main():
+
     global encoding
+
     args = parse_args()
 
     # determine whether to use the aligned or unaligned data
@@ -110,6 +110,11 @@ def main():
     data = data_file.open(encoding='utf-16').read().split("\n")
     cols = data[HEADER_ROW].split(COLUMN_SEPARATOR)
     langs = cols[2:]
+
+    # import tensorflow here to comply with the wiki entry https://wiki.lsv.uni-saarland.de/doku.php?id=cluster
+    import tensorflow as tf
+    # set random seed for weights
+    tf.random.set_seed(seed=42)
 
     for li, line in enumerate(data[HEADER_ROW:]):
         if aligned:
@@ -168,7 +173,7 @@ def main():
                 data = np.array(data)
                 data = tf.dtypes.cast(data, tf.float32)
                 data = tf.reshape(data, (1, -1))
-                with tf.GradientTape(persistent=True) as tape:
+                with tf.GradientTape() as tape:
                     output = model(data)
                     loss = loss_object(target, output)
                     batch_losses.append(float(loss))
@@ -177,8 +182,8 @@ def main():
                     output_characters.append(alphabet.get_char_by_vector(output))
             words_pred.append("".join(output_characters))
             words_true.append(str(cognate_set.ancestor_word))
-            #if batch % 100 == 0:
-            #    print("Batch [{}/{}]".format(batch, len(cognate_sets)))
+            if batch % 100 == 0:
+                print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, batch, len(cognate_sets)))
         # calculate mean epoch loss
         mean_loss = np.mean(batch_losses)
         epoch_losses.append(mean_loss)
