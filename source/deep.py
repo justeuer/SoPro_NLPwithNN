@@ -137,10 +137,10 @@ def main():
 
     for li, line in enumerate(data[HEADER_ROW:]):
         if aligned:
-            if line.replace("ā", "a") == "" or li % 2 != 0:
+            if line == "" or li % 2 == 0:
                 continue
         else:
-            if line.replace("ā", "a") == "" or li % 2 == 0:
+            if line == "" or li % 2 != 0:
                 continue
         row_split = line.split(COLUMN_SEPARATOR)
         id = row_split[ID_COLUMN]
@@ -212,7 +212,7 @@ def main():
         ld.print_percentiles()
         # plot if it's the last epoch
         if epoch == epochs:
-            outfile = "../out/plots_swadesh_deep/deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
+            outfile = plots_dir / "deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
             title = "Model: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
             plot_results(title=title,
                          distances={"=<" + str(d): count for d, count in ld.distances.items()},
