@@ -6,7 +6,6 @@ from utils import create_deep_model
 from classes import Alphabet, CognateSet, LevenshteinDistance
 from plots import plot_results
 
-
 encoding = None
 HEADER_ROW = 0
 COLUMN_SEPARATOR = ","
@@ -61,7 +60,6 @@ def parse_args():
 
 
 def main():
-
     global encoding
 
     args = parse_args()
@@ -87,6 +85,9 @@ def main():
     elif args.model == "asjp":
         encoding = 'ascii'
         alphabet_file = Path("../data/alphabets/asjp.csv")
+    elif args.model == 'latin':
+        encoding = 'utf-16'
+        alphabet_file = Path("../data/alphabets/latin.csv")
     # load data from file
     assert alphabet_file.exists() and alphabet_file.is_file(), "Alphabet file {} does not exist".format(alphabet_file)
     alphabet = Alphabet(alphabet_file, encoding=encoding, ortho=ortho)
@@ -110,8 +111,8 @@ def main():
         results_dir.mkdir(parents=True)
     # create file for results
     result_file_path = results_dir / "deep_{}{}{}.txt".format(args.model,
-                                                         "_aligned" if aligned else "",
-                                                         "_ortho" if ortho else "")
+                                                              "_aligned" if aligned else "",
+                                                              "_ortho" if ortho else "")
     result_file_path.touch()
     result_file = result_file_path.open('w', encoding=encoding)
 
@@ -125,7 +126,6 @@ def main():
     # create cognate sets
 
     cognate_sets = []
-
     data = data_file.open(encoding='utf-16').read().split("\n")
     cols = data[HEADER_ROW].split(COLUMN_SEPARATOR)
     langs = cols[2:]
@@ -136,7 +136,10 @@ def main():
     tf.random.set_seed(seed=42)
 
     for li, line in enumerate(data[HEADER_ROW:]):
-        if aligned:
+        if args.model == 'latin':
+            if line == "":
+                continue
+        elif aligned:
             if line == "" or li % 2 == 0:
                 continue
         else:
@@ -212,8 +215,10 @@ def main():
         ld.print_percentiles()
         # plot if it's the last epoch
         if epoch == epochs:
-            outfile = plots_dir / "deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
-            title = "Model: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
+            outfile = plots_dir / "deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
+                                                           "_ortho" if ortho else "")
+            title = "Model: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "",
+                                                   ", orthographic" if ortho else "")
             plot_results(title=title,
                          distances={"=<" + str(d): count for d, count in ld.distances.items()},
                          percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},

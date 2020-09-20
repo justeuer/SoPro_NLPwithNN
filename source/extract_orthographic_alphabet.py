@@ -1,18 +1,10 @@
 from tensorflow import keras
 from pathlib import Path
-from typing import List
 
-from classes import Alphabet, CognateSet
+from utils import list_to_str
 
 ID_COL = "id"
 CONCEPT_COL = "concept"
-
-
-def list_to_str(lst: List[float]):
-    s = ""
-    for num in lst:
-        s += str(int(num)) + ","
-    return s[:len(s)-1]
 
 # load data
 

@@ -2,7 +2,7 @@ import numpy as np
 from numpy.linalg import norm
 import tensorflow as tf
 from tensorflow.keras import layers, Sequential
-from typing import Tuple
+from typing import List
 
 
 def create_model(input_dim,
@@ -62,5 +62,12 @@ class DeepModel(tf.keras.Model):
 
 def cos_sim(x: np.array, y: np.array):
     return np.dot(x, y) / (norm(x) * norm(y))
+
+
+def list_to_str(lst: List[float]):
+    s = ""
+    for num in lst:
+        s += str(int(num)) + ","
+    return s[:len(s)-1]
 
 

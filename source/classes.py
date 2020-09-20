@@ -184,7 +184,7 @@ class Alphabet(object):
                 cols = row.split(",")
                 # check if the number of features for a given character matches
                 # the total number of features
-                if self.__ortho:
+                if not self.__ortho:
                     assert len(cols) - 1 == len(self.__features), \
                         "Not enough features found, expected {}, got {}".format(len(self.__features), len(cols))
                 char = cols[self.__chars_col]
