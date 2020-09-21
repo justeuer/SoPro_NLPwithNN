@@ -47,7 +47,7 @@ def parse_args():
                         help="switch between aligned and unaligned model")
     parser.add_argument("--epochs",
                         type=int,
-                        default=10,
+                        default=2,
                         help="number of epochs")
     parser.add_argument("--n_hidden",
                         type=int,
@@ -78,10 +78,10 @@ def main():
     data_file = None
     if args.data == "ipa":
         encoding = 'utf-16'
-        data_file = Path("../data/ciobanu/romance_ipa_auto.csv")
+        data_file = Path("../data/romance_ipa_full.csv")
     elif args.data == "asjp":
         encoding = 'ascii'
-        data_file = Path("../data/ciobanu/romance_asjp_auto.csv")
+        data_file = Path("../data/romance_asjp_full.csv")
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     # determine model
     assert args.model in MODELS, "Model should be one of {}".format(MODELS)
@@ -213,11 +213,16 @@ def main():
         epoch_losses.append(mean_loss)
         print("Epoch[{}]/[{}], mean batch loss = {}".format(epoch, epochs, mean_loss))
         # calculate levenshtein distance
-        ld = LevenshteinDistance(true=words_true, pred=words_pred)
+        ld = LevenshteinDistance(true=words_true, 
+                                pred=words_pred)
         ld.print_distances()
         ld.print_percentiles()
+        print("now starting last epoch")
+        print(epoch)
         # plot if it's the last epoch
         if epoch == epochs:
+            print("this is the last epoch")
+            print(epoch)
             outfile = "../out/plots_swadesh_deep/deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
             title = "Model: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
             plot_results(title=title,
@@ -230,6 +235,8 @@ def main():
             # save reconstructed words (but only if the edit distance is at least one)
             import nltk
             for t, p in zip(words_true, words_pred):
+                #print("true, predicted")
+                #print(t, p)
                 distance = nltk.edit_distance(t, p)
                 if distance > 0:
                     line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))

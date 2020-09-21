@@ -10,20 +10,20 @@ import time
 import sys
 
 from classes import Alphabet, CognateSet, LevenshteinDistance
-from utils import create_model
+from utils import create_lstm_model
 from plots import plot_results
 import nltk
 import os
 
 
-plots_dir = Path("../out/plots_ciobanu_rnn")
+plots_dir = Path("../out/plots_ciobanu_lstm")
 if not plots_dir.exists():
     plots_dir.mkdir(parents=True)
 
 results_dir = Path("../out/results")
 
 #save the model
-checkpoint_path = Path("../ciobanu_rnn_model/models/")
+checkpoint_path = Path("../ciobanu_lstm_model/epochs/")
 if not checkpoint_path.exists():
 	checkpoint_path.mkdir(parents=True)
 #checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -126,14 +126,14 @@ def train():
 
     # determine output directories, create them if they do not exist
     out_tag = "_{}".format(args.out_tag)
-    plots_dir = Path("../out/plots{}_rnn".format(out_tag))
+    plots_dir = Path("../out/plots{}_lstm".format(out_tag))
     if not plots_dir.exists():
         plots_dir.mkdir(parents=True)
-    results_dir = Path("../out/results{}_rnn".format(out_tag))
+    results_dir = Path("../out/results{}_lstm".format(out_tag))
     if not results_dir.exists():
         results_dir.mkdir(parents=True)
     # create file for results
-    result_file_path = results_dir / "rnn_{}{}{}.txt".format(args.model,
+    result_file_path = results_dir / "lstm_{}{}{}.txt".format(args.model,
                                                               "_aligned" if aligned else "",
                                                               "_ortho" if ortho else "")
     result_file_path.touch()
@@ -143,7 +143,7 @@ def train():
     print(alphabet)
 
     # initialize model
-    model, optimizer, loss_object = create_model(input_dim=alphabet.get_feature_dim(),
+    model, optimizer, loss_object = create_lstm_model(input_dim=alphabet.get_feature_dim(),
                                                  embedding_dim=28,
                                                  context_dim=128,
                                                  output_dim=alphabet.get_feature_dim())
@@ -199,6 +199,7 @@ def train():
     valid_data = cognate_sets[split_index:]
     print("train size: {}".format(len(train_data)))
     print("valid size: {}".format(len(valid_data)))
+    cognate_sets = cognate_sets[:50]
     # print("cognate_sets in ral")
     # print(cognate_sets)
 
@@ -213,7 +214,7 @@ def train():
         words_true.clear()
         words_pred.clear()
         # iterate over the cognate sets
-        for i, cs in enumerate(train_data):
+        for i, cs in enumerate(cognate_sets):
             # reset batch loss
             batch_losses.clear()
             # iterate over the character embeddings
@@ -242,7 +243,7 @@ def train():
                         gradients = tape.gradient(loss, model.trainable_weights)
                         # backpropagate
                         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                        model.save_weights("../ciobanu_rnn_model/models/epoch_{}.hd5".format(epoch))
+                        model.save_weights("../ciobanu_lstm_model/epochs/epoch_{}.hd5".format(epoch))
                         # convert the character vector into a character
                     output_char = alphabet.get_char_by_feature_vector(output)
                     # append the converted vectors to a list so we can see the reconstructed word
@@ -255,7 +256,7 @@ def train():
             #print("true words")
            # print(words_true)
             if i % 100 == 0:
-                print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, i, len(train_data)))
+                print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, i, len(cognate_sets)))
             # clear the list of output characters so we can create another word
             output_characters.clear()
             #print("Batch {}, mean loss={}".format(i, np.mean(batch_losses)))
@@ -272,8 +273,8 @@ def train():
         	print("this is the last epoch")
         	print(epoch)
         	# save reconstructed words (but only if the edit distance is at least one)
-        	outfile = "../out/plots_ciobanu_rnn/rnn_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
-        	title = "Model: recurrent net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
+        	outfile = "../out/plots_ciobanu_lstm/lstm_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
+        	title = "Model: lstm net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
         	plot_results(title=title,
                          distances={"=<" + str(d): count for d, count in ld.distances.items()},
                          percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},

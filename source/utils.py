@@ -21,45 +21,18 @@ def create_model(input_dim,
     return model, optimizer, loss_object
 
 
-def create_test_model(input_dim,
-                      output_dim):
-    model = TestModel(input_dim=input_dim, output_dim=output_dim)
-    optimizer = tf.keras.optimizers.Adam()
-    # cosine similarity since that is also the function we use to retrieve the chars
-    # from the model output.
+def create_lstm_model(input_dim,
+                     embedding_dim,
+                     context_dim,
+                    output_dim):
+    model = Sequential()
+    model.add(layers.Embedding(input_dim=input_dim, output_dim=output_dim))
+    model.add(layers.LSTM(context_dim))
+    model.add(layers.Dense(output_dim, activation='sigmoid'))
+    optimizer = tf.keras.optimizers.SGD()
     loss_object = tf.keras.losses.CosineSimilarity()
     model.compile(loss="cosine_similarity", optimizer=optimizer)
-    model.build(input_shape=input_dim)
     return model, optimizer, loss_object
-
-class TestModel(tf.keras.Model):
-    """
-    Deep feedforward network. We agglutinate all character vectors at one position
-    into a single vector and then feed that into 2 fully connected layers (so technically
-    there is only one real 'deep' layer.
-    """
-    def __init__(self, input_dim, cells, output_dim):
-        super(TestModel, self).__init__()
-        #initialize embedding layer
-       # self.embedding = layers.Embedding(input_dim=input_dim, output_dim=embedding_dim)
-        self.inputs = keras.Input((None, input_dim))
-        # create as many hidden layers as specified & append them to an internal list
-        self.rnn = layers.RNN(cells=cells, inputs=input_dim)
-        # we chose sigmoid as the activation function since the desired output is a multi-
-        # hot vector (or a one-hot vector in the case of char embeddings)
-        self.out = layers.Dense(output_dim=output_dim, activation='sigmoid')
-
-    def call(self, inputs, cells, context_dim, **kwargs):
-        cells = [
-        keras.layers.LSTMCell(context_dim),
-        keras.layers.LSTMCell(context_dim),
-        keras.layers.LSTMCell(context_dim),
-        keras.layers.LSTMCell(context_dim),
-        keras.layers.LSTMCell(context_dim)
-    ]
-        inputs = keras.Input((None, inpuinput_dim))
-        x = keras.layers.RNN(cells)(inputs)
-        return self.out(x)
 
 
 
@@ -106,30 +79,5 @@ class DeepModel(tf.keras.Model):
 
 def cos_sim(x: np.array, y: np.array):
     return np.dot(x, y) / (norm(x) * norm(y))
-
-
-#class taken from https://www.tensorflow.org/api_docs/python/tf/keras/layers/RNN
-class MinimalRNNCell(keras.layers.Layer):
-
-    def __init__(self, units, **kwargs):
-        self.units = units
-        self.state_size = units
-        super(MinimalRNNCell, self).__init__(**kwargs)
-
-    def build(self, input_shape):
-        self.kernel = self.add_weight(shape=(input_shape[-1], self.units),
-                                      initializer='uniform',
-                                      name='kernel')
-        self.recurrent_kernel = self.add_weight(
-            shape=(self.units, self.units),
-            initializer='uniform',
-            name='recurrent_kernel')
-        self.built = True
-
-    def call(self, inputs, states):
-        prev_output = states[0]
-        h = K.dot(inputs, self.kernel)
-        output = h + K.dot(prev_output, self.recurrent_kernel)
-        return output, [output]
 
 
