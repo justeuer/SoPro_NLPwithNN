@@ -26,6 +26,8 @@ MODELS = ['ipa', 'asjp', 'latin']
 # The last switch will create separate output folders for the ciobanu data, but you can use any value
 # If you don't want to overwrite existing files
 
+# --ortho tells the script to use character embeddings. If it's not present, feature encodings will be used.
+
 # --aligned will choose every second line instead, which contain the aligned cognate set.
 # You can actually use --aligned and --ortho together, will result in the best model for each
 # configuration.
