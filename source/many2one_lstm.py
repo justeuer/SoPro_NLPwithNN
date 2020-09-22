@@ -43,10 +43,6 @@ def parse_args():
                         type=int,
                         default=10,
                         help="number of epochs")
-    # parser.add_argument("--n_hidden",
-    #                    type=int,
-    #                    default=1,
-    #                    help="number of hidden layers")
     parser.add_argument("--out_tag",
                         type=str,
                         default="swadesh",

@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 import numpy as np
 from pathlib import Path
+import random
 
 from utils import create_deep_model
 from classes import Alphabet, CognateSet, LevenshteinDistance
@@ -14,12 +15,6 @@ CONCEPT_COLUMN = 1
 # online training, one cognate set a time
 BATCH_SIZE = 1
 MODELS = ['ipa', 'asjp', 'latin']
-
-plots_dir = Path("../out/plots_swadesh_deep")
-if not plots_dir.exists():
-    plots_dir.mkdir(parents=True)
-
-results_dir = Path("../out/results")
 
 
 def parse_args():
@@ -50,7 +45,7 @@ def parse_args():
                         help="number of epochs")
     parser.add_argument("--n_hidden",
                         type=int,
-                        default=1,
+                        default=2,
                         help="number of hidden layers")
     parser.add_argument("--out_tag",
                         type=str,
@@ -160,6 +155,18 @@ def main():
                                  alphabet=alphabet)
         cognate_sets.append(cognate_set)
 
+    # prepare train_test_split
+    data = {i: cognate_set for i, cognate_set in enumerate(cognate_sets)}
+    train_size = 0.8
+    n_train_samples = int(train_size * len(cognate_sets))
+    train_indices = random.sample(list(data), n_train_samples)
+    train_data = {i: cognate_set for i, cognate_set in data.items() if i in train_indices}
+    test_data = {i: cognate_set for i, cognate_set in data.items() if i not in train_indices}
+
+    print("Train size: {}".format(len(train_data)))
+    print("Test size: {}".format(len(test_data)))
+
+
     # input shape is a vector of size (number of languages without the ancestor * number of features)
     print("langs", langs)
     input_dim = (1, len(langs) - 1, alphabet.feature_dim)
@@ -178,12 +185,13 @@ def main():
     epoch_losses = []
     batch_losses = []
 
-    # train
+    # Training
+    print("***** Start training *****")
     for epoch in range(1, epochs + 1):
         words_true.clear()
         words_pred.clear()
         batch_losses.clear()
-        for batch, cognate_set in enumerate(cognate_sets):
+        for batch, cognate_set in train_data.items():
             output_characters = []
             for lang_array in cognate_set:
                 target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
@@ -216,9 +224,9 @@ def main():
         ld.print_percentiles()
         # plot if it's the last epoch
         if epoch == epochs:
-            outfile = plots_dir / "deep_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
+            outfile = plots_dir / "deep_train_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
                                                            "_ortho" if ortho else "")
-            title = "Model: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "",
+            title = "Model [Train]: deep net{}{}{}".format(", " + args.model, ", aligned" if aligned else "",
                                                    ", orthographic" if ortho else "")
             plot_results(title=title,
                          distances={"=<" + str(d): count for d, count in ld.distances.items()},
@@ -235,6 +243,47 @@ def main():
                     line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
                     result_file.write(line)
             result_file.close()
+    words_pred.clear()
+    words_true.clear()
+    print("***** Training finished *****")
+    print()
+
+    print("***** Start testing *****")
+    for i, cognate_set in test_data.items():
+        output_characters = []
+        for lang_array in cognate_set:
+            target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
+            target = tf.dtypes.cast(target, tf.float32)
+            data = []
+            for lang, vec in lang_array.items():
+                data.append(list(vec))
+            data = np.array(data)
+            data = tf.keras.backend.expand_dims(data, axis=0)
+            data = tf.dtypes.cast(data, tf.float32)
+            output = model(data)
+            # loss = loss_object(target, output)
+            output_characters.append(alphabet.get_char_by_vector(output))
+        words_pred.append("".join(output_characters))
+        words_true.append(str(cognate_set.ancestor_word))
+
+    # create plots
+    ld = LevenshteinDistance(words_true, words_pred)
+    ld.print_distances()
+    ld.print_percentiles()
+    outfile = plots_dir / "deep_test_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
+                                                            "_ortho" if ortho else "")
+    title = "Model [Test]: many to one with LSTM, {}{}{}".format(", " + args.model, ", aligned" if aligned else "",
+                                                                 ", orthographic" if ortho else "")
+    plot_results(title=title,
+                 distances={"=<" + str(d): count for d, count in ld.distances.items()},
+                 percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
+                 mean_dist=ld.mean_distance,
+                 mean_dist_norm=ld.mean_distance_normalized,
+                 losses=[],
+                 outfile=Path(outfile),
+                 testing=True)
+
+    print("***** Testing finished *****")
 
 
 if __name__ == '__main__':
