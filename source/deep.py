@@ -17,6 +17,20 @@ BATCH_SIZE = 1
 MODELS = ['ipa', 'asjp', 'latin']
 
 
+# To train the script with latin characters I run this command:
+# python deep.py --data=../data/romance_orthographic.csv --model=latin --ortho
+
+# and for the ciobanu data & latin alphabet:
+# python deep.py --data=../data/romance_ciobanu_latin_orthographic.csv --model=latin --ancestor=ancestor \
+# --out_tag=ciobanu
+# The last switch will create separate output folders for the ciobanu data, but you can use any value
+# If you don't want to overwrite existing files
+
+# --aligned will choose every second line instead, which contain the aligned cognate set.
+# You can actually use --aligned and --ortho together, will result in the best model for each
+# configuration.
+
+
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--data",
@@ -101,6 +115,7 @@ def main():
     plots_dir = Path("../out/plots{}_deep".format(out_tag))
     if not plots_dir.exists():
         plots_dir.mkdir(parents=True)
+    # directory for lists of reconstructed vs. latin words
     results_dir = Path("../out/results{}_deep".format(out_tag))
     if not results_dir.exists():
         results_dir.mkdir(parents=True)
@@ -114,12 +129,7 @@ def main():
     # determine ancestor
     ancestor = args.ancestor
 
-    # print alphabet
-    # print("alphabet:")
-    # print(alphabet)
-
     # create cognate sets
-
     cognate_sets = []
     data = data_file.open(encoding='utf-16').read().split("\n")
     cols = data[HEADER_ROW].split(COLUMN_SEPARATOR)
@@ -130,13 +140,17 @@ def main():
     # set random seed for weights
     tf.random.set_seed(seed=42)
 
+    # start data extraction
     for li, line in enumerate(data[HEADER_ROW:]):
+        # have to do that because the file with the latin characters doesn't contain aligned cognate sets
         if args.model == 'latin':
             if line == "":
                 continue
+        # but the other two do
         elif aligned:
             if line == "" or li % 2 == 0:
                 continue
+        # the unaligned case
         else:
             if line == "" or li % 2 != 0:
                 continue
@@ -248,6 +262,9 @@ def main():
     print("***** Training finished *****")
     print()
 
+    # Testing
+    # Do the same thing as above with the test data, but don't collect the gradients
+    # and don't backpropagate
     print("***** Start testing *****")
     for i, cognate_set in test_data.items():
         output_characters = []
@@ -263,7 +280,9 @@ def main():
             output = model(data)
             # loss = loss_object(target, output)
             output_characters.append(alphabet.get_char_by_vector(output))
+        # compile the reconstructed word
         words_pred.append("".join(output_characters))
+        # save the true word for the distance calculation
         words_true.append(str(cognate_set.ancestor_word))
 
     # create plots
