@@ -6,3 +6,4 @@ data/*
 *__pycache__*
 requirements.txt
 out*
+ciobanu_lstm_model*

@@ -33,6 +33,20 @@ def create_deep_model(input_dim,
     return model, optimizer, loss_object
 
 
+def create_lstm_model(input_dim,
+                      embedding_dim,
+                      context_dim,
+                      output_dim):
+    model = Sequential()
+    model.add(layers.Embedding(input_dim=input_dim, output_dim=embedding_dim))
+    model.add(layers.SimpleRNN(context_dim))
+    model.add(layers.Dense(output_dim, activation='sigmoid'))
+    optimizer = tf.keras.optimizers.Adam()
+    loss_object = tf.keras.losses.CosineSimilarity()
+    model.compile(loss="cosine_similarity", optimizer=optimizer)
+    return model, optimizer, loss_object
+
+
 class DeepModel(tf.keras.Model):
     """
     Deep feedforward network. We agglutinate all character vectors at one position

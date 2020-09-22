@@ -15,18 +15,17 @@ from plots import plot_results
 import nltk
 import os
 
-
 plots_dir = Path("../out/plots_ciobanu_lstm")
 if not plots_dir.exists():
     plots_dir.mkdir(parents=True)
 
 results_dir = Path("../out/results")
 
-#save the model
+# save the model
 checkpoint_path = Path("../ciobanu_lstm_model/epochs/")
 if not checkpoint_path.exists():
-	checkpoint_path.mkdir(parents=True)
-#checkpoint_dir = os.path.dirname(checkpoint_path)
+    checkpoint_path.mkdir(parents=True)
+# checkpoint_dir = os.path.dirname(checkpoint_path)
 
 # create output dir
 # out_dir = Path("../data/out/ciobanu")
@@ -83,7 +82,6 @@ def parser_args():
 
 
 def train():
-    
     # Command line call I used:
     # python ciobanu_rnn.py --data=ipa --model=ipa --epochs=10 --out_tag=test --model=ipa --ancestor=ancestor
 
@@ -103,6 +101,9 @@ def train():
     elif args.data == "asjp":
         encoding = 'ascii'
         data_file = Path("../data/ciobanu/romance_asjp_auto.csv")
+    elif args.data == "latin":
+        encoding = 'utf-16'
+        data_file = Path("../data/ciobanu/romance_ciobanu_latin_orthographic.csv")
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     # determine model
     assert args.model in MODELS, "Model should be one of {}".format(MODELS)
@@ -144,9 +145,9 @@ def train():
 
     # initialize model
     model, optimizer, loss_object = create_lstm_model(input_dim=alphabet.get_feature_dim(),
-                                                 embedding_dim=28,
-                                                 context_dim=128,
-                                                 output_dim=alphabet.get_feature_dim())
+                                                      embedding_dim=100,
+                                                      context_dim=128,
+                                                      output_dim=alphabet.get_feature_dim())
 
     model.summary()
 
@@ -199,7 +200,7 @@ def train():
     valid_data = cognate_sets[split_index:]
     print("train size: {}".format(len(train_data)))
     print("valid size: {}".format(len(valid_data)))
-    cognate_sets = cognate_sets[:50]
+    #cognate_sets = cognate_sets[:50]
     # print("cognate_sets in ral")
     # print(cognate_sets)
 
@@ -225,16 +226,16 @@ def train():
                 target = tf.keras.backend.expand_dims(char_embeddings.pop(cs.ancestor).to_numpy(), axis=0)
                 # convert the latin character embedding to float32 to match the dtype of the output (line 137)
                 target = tf.dtypes.cast(target, tf.float32)
-         
+
                 # iterate through the embeddings
-                # initialize the GradientTape
-                with tf.GradientTape(persistent=True) as tape:
-                    for lang, embedding in char_embeddings.items():
+                for lang, embedding in char_embeddings.items():
+                    # initialize the GradientTape
+                    with tf.GradientTape() as tape:
                         # add a dimension to the the embeddings
                         data = tf.keras.backend.expand_dims(embedding.to_numpy(), axis=0)
                         output = model(data)
-                       # print("output")
-                        #print(output)
+                        # print("output")
+                        # print(output)
                         # calculate the loss
                         loss = loss_object(target, output)
                         epoch_losses.append(float(loss))
@@ -243,23 +244,20 @@ def train():
                         gradients = tape.gradient(loss, model.trainable_weights)
                         # backpropagate
                         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                        model.save_weights("../ciobanu_lstm_model/epochs/epoch_{}.hd5".format(epoch))
+                        #model.save_weights("../ciobanu_lstm_model/epochs/epoch_{}.hd5".format(epoch))
                         # convert the character vector into a character
-                    output_char = alphabet.get_char_by_feature_vector(output)
-                    # append the converted vectors to a list so we can see the reconstructed word
-                    output_characters.append(output_char)
+                        output_char = alphabet.get_char_by_feature_vector(output)
+                        # append the converted vectors to a list so we can see the reconstructed word
+                        output_characters.append(output_char)
             # append the reconstructed word and the ancestor to the true/pred lists
             words_pred.append("".join(output_characters))
-            #print("predicted words")
-           # print(words_pred)
-            words_true.append(str(cs.ancestor))
-            #print("true words")
-           # print(words_true)
+            words_true.append(str(cs.ancestor_word))
+            print(str(cs.ancestor_word), "".join(output_characters))
             if i % 100 == 0:
                 print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, i, len(cognate_sets)))
             # clear the list of output characters so we can create another word
             output_characters.clear()
-            #print("Batch {}, mean loss={}".format(i, np.mean(batch_losses)))
+            # print("Batch {}, mean loss={}".format(i, np.mean(batch_losses)))
         # calculate distances
         ld = LevenshteinDistance(true=words_true,
                                  pred=words_pred)
@@ -270,25 +268,27 @@ def train():
         print("epochs are finished")
         print(epoch)
         if epoch == epochs:
-        	print("this is the last epoch")
-        	print(epoch)
-        	# save reconstructed words (but only if the edit distance is at least one)
-        	outfile = "../out/plots_ciobanu_lstm/lstm_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
-        	title = "Model: lstm net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
-        	plot_results(title=title,
+            print("this is the last epoch")
+            print(epoch)
+            # save reconstructed words (but only if the edit distance is at least one)
+            outfile = plots_dir / "lstm_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
+                                                                         "_ortho" if ortho else "")
+            title = "Model: lstm net{}{}{}".format(", " + args.model, ", aligned" if aligned else "",
+                                                   ", orthographic" if ortho else "")
+            plot_results(title=title,
                          distances={"=<" + str(d): count for d, count in ld.distances.items()},
                          percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
                          mean_dist=ld.mean_distance,
                          mean_dist_norm=ld.mean_distance_normalized,
                          losses=epoch_losses,
                          outfile=Path(outfile))
-        	# save reconstructed words (but only if the edit distance is at least one)
-        	for t, p in zip(words_true, words_pred):
-        		distance = nltk.edit_distance(t, p)
-        		if distance > 0:
-        			line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
-        			result_file.write(line)
-        	result_file.close()
+            # save reconstructed words (but only if the edit distance is at least one)
+            for t, p in zip(words_true, words_pred):
+                distance = nltk.edit_distance(t, p)
+                if distance > 0:
+                    line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
+                    result_file.write(line)
+            result_file.close()
 
 
 if __name__ == '__main__':
