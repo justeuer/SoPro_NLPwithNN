@@ -47,6 +47,40 @@ def create_lstm_model(input_dim,
     return model, optimizer, loss_object
 
 
+def create_many_to_one_model(lstm_dim, timesteps, data_dim, fc_dim, output_dim):
+    """
+    Creates a many - to - one model with LSTM units.
+    Parameters
+    ----------
+    lstm_dim
+        Size of the LSTM layer
+    timesteps
+        Number of timesteps = number of inputs into the LSTM layer = number of romance language chars
+    data_dim
+        Size of the character/feature embedding
+    fc_dim
+        Size of the intermediate fully connected layer
+    output_dim
+        Size of the output layer = size of the charcter/feature embedding
+    Returns
+        The compiled model, the loss object, and the optimizer
+    -------
+
+    """
+    model = Sequential()
+    # This creates an LSTM layer that expects 5 inputs (which is, five characters in the five
+    # romance languages). We could use 5 separate layers though
+    model.add(layers.LSTM(lstm_dim, activation='relu', input_shape=(timesteps, data_dim)))
+    # First dense layer, to avoid narrowing of the signal from 128 to 10 in one step
+    model.add(layers.Dense(fc_dim, activation='relu'))
+    # output layer, size of the feature/character embedding
+    model.add(layers.Dense(output_dim, activation='sigmoid'))
+    optimizer = tf.keras.optimizers.Adam()
+    loss_object = tf.keras.losses.CosineSimilarity()
+    model.compile(loss="cosine_similarity", optimizer=optimizer)
+    return model, optimizer, loss_object
+
+
 class DeepModel(tf.keras.Model):
     """
     Deep feedforward network. We agglutinate all character vectors at one position
