@@ -55,7 +55,6 @@ class Word(object):
         Returns
             An numpy array of the size (n_chars x n_features)
         -------
-
         """
         return np.array([char.vector for char in self.__chars])
 
@@ -108,7 +107,6 @@ class Alphabet(object):
         Creates character embeddings for all characters in the alphabet file
         Returns
         -------
-
         """
         char_embeddings = {}
         char2index = {char: i for i, char in enumerate(list(self.__dict.keys()))}
@@ -129,7 +127,6 @@ class Alphabet(object):
         Returns
             The Word object containing the list of classes.Char object
         -------
-
         """
         chars_ = []
         self._find_chars(word, chars_)
@@ -184,7 +181,7 @@ class Alphabet(object):
                 cols = row.split(",")
                 # check if the number of features for a given character matches
                 # the total number of features
-                if self.__ortho:
+                if not self.__ortho:
                     assert len(cols) - 1 == len(self.__features), \
                         "Not enough features found, expected {}, got {}".format(len(self.__features), len(cols))
                 char = cols[self.__chars_col]
@@ -222,7 +219,6 @@ class Alphabet(object):
         Returns
             A Char object corresponding to the feature vector
         -------
-
         """
         cos_sims = {}
         if not self.__ortho:
@@ -279,7 +275,6 @@ class Alphabet(object):
         Returns
             The number of features
         -------
-
         """
         return len(self.__features)
 
@@ -289,7 +284,6 @@ class Alphabet(object):
             The size of the one-hot embeddings, which is the size of the alphabet, which
             is the size of the vocabulary.
         -------
-
         """
         return len(self)
 
@@ -299,7 +293,6 @@ class Alphabet(object):
         Returns
             The dictionary mapping characters to their embeddings. Not used atm.
         -------
-
         """
         return self.__char_embeddings
 
@@ -354,7 +347,6 @@ class CognateSet(object):
         Returns
             The Word object representing the ancestor in the cognate set
         -------
-
         """
         return self.__cognate_dict[self.__ancestor]
 
@@ -368,7 +360,6 @@ class CognateSet(object):
         Returns
             The padded word
         -------
-
         """
         for i in range(len(word), self.__pad_to):
             word.chars.append(self.__alphabet.create_char(self.__alphabet.empty_symbol))
@@ -429,7 +420,6 @@ class Ipa2Asjp(object):
         Returns
             The list of ASJP Char objects
         -------
-
         """
         s = ""
         for char in chars:
@@ -482,7 +472,6 @@ class LevenshteinDistance(object):
         """
         Calculates the Levenshtein distance between the latin word and the reconstructed word. Uses the
         Levenshtein distance function from NLTK.
-
         Parameters
         ----------
         t
@@ -502,7 +491,6 @@ class LevenshteinDistance(object):
         Returns
             A dictionary containing the percentiles
         -------
-
         """
         percentiles = {}
         data = Counter(self.__distances)
@@ -525,7 +513,6 @@ class LevenshteinDistance(object):
         Returns
             The distance percentiles
         -------
-
         """
         normalized = []
         for length, distance in zip(self.__word_lengths, self.__distances):

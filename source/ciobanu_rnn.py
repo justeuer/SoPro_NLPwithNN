@@ -14,25 +14,9 @@ from utils import create_model
 from plots import plot_results
 import nltk
 import os
+import random
 
-
-plots_dir = Path("../out/plots_ciobanu_rnn")
-if not plots_dir.exists():
-    plots_dir.mkdir(parents=True)
-
-results_dir = Path("../out/results")
-
-#save the model
-checkpoint_path = Path("../ciobanu_rnn_model/models/")
-if not checkpoint_path.exists():
-	checkpoint_path.mkdir(parents=True)
-#checkpoint_dir = os.path.dirname(checkpoint_path)
-
-# create output dir
-# out_dir = Path("../data/out/ciobanu")
-# if not out_dir.exists():
-#    out_dir.mkdir()
-
+encoding = None
 # set random seed for weights
 tf.random.set_seed(seed=42)
 encoding = None
@@ -42,11 +26,8 @@ ID_COLUMN = 0
 CONCEPT_COLUMN = 1
 # online training, one cognate set a time
 BATCH_SIZE = 1
-MODELS = ['asjp', 'ipa', 'latin']
+MODELS = ['ipa', 'asjp', 'latin']
 valid_size = 0.8
-batch_size = 1
-
-output_characters = []
 
 
 def parser_args():
@@ -73,7 +54,7 @@ def parser_args():
                         help="switch between aligned and unaligned model")
     parser.add_argument("--epochs",
                         type=int,
-                        default=2,
+                        default=10,
                         help="number of epochs")
     parser.add_argument("--out_tag",
                         type=str,
@@ -82,7 +63,7 @@ def parser_args():
     return parser.parse_args()
 
 
-def train():
+def main():
     
     # Command line call I used:
     # python ciobanu_rnn.py --data=ipa --model=ipa --epochs=10 --out_tag=test --model=ipa --ancestor=ancestor
@@ -103,6 +84,9 @@ def train():
     elif args.data == "asjp":
         encoding = 'ascii'
         data_file = Path("../data/ciobanu/romance_asjp_auto.csv")
+    elif args.data == "latin":
+        encoding = 'utf-16'
+        data_file = Path("../data/ciobanu/romance_orthographic.csv")
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     # determine model
     assert args.model in MODELS, "Model should be one of {}".format(MODELS)
@@ -114,15 +98,18 @@ def train():
     elif args.model == "asjp":
         encoding = 'ascii'
         alphabet_file = Path("../data/alphabets/asjp.csv")
+    elif args.model == "latin":
+        encoding = 'utf-16'
+        alphabet_file = Path("../data/alphabets/latin.csv")
     # load data from file
     assert alphabet_file.exists() and alphabet_file.is_file(), "Alphabet file {} does not exist".format(alphabet_file)
     alphabet = Alphabet(alphabet_file, encoding=encoding, ortho=ortho)
+    
+    #number of epochs
     assert isinstance(args.epochs, int), "Epochs not int, but {}".format(type(args.epochs))
     assert args.epochs > 0, "Epochs out of range: {}".format(args.epochs)
     epochs = args.epochs
 
-    # ancestor
-    ancestor = args.ancestor
 
     # determine output directories, create them if they do not exist
     out_tag = "_{}".format(args.out_tag)
@@ -133,27 +120,15 @@ def train():
     if not results_dir.exists():
         results_dir.mkdir(parents=True)
     # create file for results
-    result_file_path = results_dir / "rnn_{}{}{}.txt".format(args.model,
+    result_file_path = results_dir / "rnn{}{}{}.txt".format(args.model,
                                                               "_aligned" if aligned else "",
                                                               "_ortho" if ortho else "")
     result_file_path.touch()
     result_file = result_file_path.open('w', encoding=encoding)
 
-    print("alphabet:")
-    print(alphabet)
+    #determine ancestor
+    ancestor = args.ancestor
 
-    # initialize model
-    model, optimizer, loss_object = create_model(input_dim=alphabet.get_feature_dim(),
-                                                 embedding_dim=28,
-                                                 context_dim=128,
-                                                 output_dim=alphabet.get_feature_dim())
-
-    model.summary()
-
-    print("data_file: {}".format(data_file.absolute()))
-    print("model: {}, orthographic={}, aligned={}".format(args.model, ortho, aligned))
-    print("alphabet: {}, read from {}".format(args.model, alphabet_file.absolute()))
-    print("epochs: {}".format(epochs))
 
     # create cognate sets
 
@@ -162,11 +137,13 @@ def train():
     data = data_file.open(encoding='utf-16').read().split("\n")
     cols = data[HEADER_ROW].split(COLUMN_SEPARATOR)
     langs = cols[2:]
-    print("langs")
-    print(langs)
+    
 
     for li, line in enumerate(data[HEADER_ROW:]):
-        if aligned:
+        if args.model == 'latin':
+            if line == "":
+                continue
+        elif aligned:
             if line == "" or li % 2 != 0:
                 continue
         else:
@@ -190,80 +167,95 @@ def train():
                         cognate_dict=cognate_dict,
                         alphabet=alphabet)
         cognate_sets.append(cs)
+    
+    # prepare train_test_split
+    data = {i: cognate_set for i, cognate_set in enumerate(cognate_sets)}
+    train_size = 0.8
+    n_train_samples = int(train_size * len(cognate_sets))
+    train_indices = random.sample(list(data), n_train_samples)
+    train_data = {i: cognate_set for i, cognate_set in data.items() if i in train_indices}
+    test_data = {i: cognate_set for i, cognate_set in data.items() if i not in train_indices}
+    print("Train size: {}".format(len(train_data)))
+    print("Test size: {}".format(len(test_data)))
 
-    # maybe we needn't do the evaluation, since we mainly want to know how
-    # the model behaves with the different inputs
 
-    split_index = int(valid_size * len(cognate_sets))
-    train_data = cognate_sets[:split_index]
-    valid_data = cognate_sets[split_index:]
-    print("train size: {}".format(len(train_data)))
-    print("valid size: {}".format(len(valid_data)))
-    # print("cognate_sets in ral")
-    # print(cognate_sets)
+    # initialize model
+    model, optimizer, loss_object = create_model(input_dim=alphabet.get_feature_dim(),
+                                                 embedding_dim=28,
+                                                 context_dim=128,
+                                                 output_dim=alphabet.get_feature_dim())
+
+    model.summary()
+
+
 
     words_true = []
     words_pred = []
     epoch_losses = []
     batch_losses = []
 
+    print("*** Start training ***")
     for epoch in range(1, epochs + 1):
         # reset lists
-        epoch_losses.clear()
         words_true.clear()
         words_pred.clear()
+        batch_losses.clear()
         # iterate over the cognate sets
-        for i, cs in enumerate(train_data):
-            # reset batch loss
-            batch_losses.clear()
+        for batch, cognate_set in train_data.items():
+            output_characters = []
             # iterate over the character embeddings
-            for j, char_embeddings in enumerate(cs):
+            for lang_array in cognate_set:
                 # add a dimension to the latin character embedding (ancestor embedding)
                 # we add a dimension because we use a batch size of 1 and TensorFlow does not
                 # automatically insert the batch size dimension
-                target = tf.keras.backend.expand_dims(char_embeddings.pop(cs.ancestor).to_numpy(), axis=0)
+                target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
                 # convert the latin character embedding to float32 to match the dtype of the output (line 137)
                 target = tf.dtypes.cast(target, tf.float32)
-         
+                data = []
+                for lang, vec in lang_array.items():
+                    data.append(list(vec))
+                data = np.array(data)
+                data = tf.keras.backend.expand_dims(data, axis=0)
+                data = tf.dtypes.cast(target, tf.float32)
                 # iterate through the embeddings
                 # initialize the GradientTape
-                with tf.GradientTape(persistent=True) as tape:
-                    for lang, embedding in char_embeddings.items():
-                        # add a dimension to the the embeddings
-                        data = tf.keras.backend.expand_dims(embedding.to_numpy(), axis=0)
-                        output = model(data)
-                       # print("output")
-                        #print(output)
-                        # calculate the loss
-                        loss = loss_object(target, output)
-                        epoch_losses.append(float(loss))
-                        batch_losses.append(float(loss))
-                        # calculate the gradients
-                        gradients = tape.gradient(loss, model.trainable_weights)
-                        # backpropagate
-                        optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                        model.save_weights("../ciobanu_rnn_model/models/epoch_{}.hd5".format(epoch))
-                        # convert the character vector into a character
-                    output_char = alphabet.get_char_by_feature_vector(output)
+                with tf.GradientTape() as tape:
+                    output = model(data)
+                    # calculate the loss
+                    loss = loss_object(target, output)
+                    epoch_losses.append(float(loss))
+                    batch_losses.append(float(loss))
+                    # calculate the gradients
+                    gradients = tape.gradient(loss, model.trainable_weights)
+                    # backpropagate
+                    optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+                    # convert the character vector into a character
+                    #output_char = alphabet.get_char_by_feature_vector(output)
                     # append the converted vectors to a list so we can see the reconstructed word
-                    output_characters.append(output_char)
+                    output_characters.append(alphabet.get_char_by_vector(output))
+                  #  print("output_characters")
+                  #  print(output_characters)
             # append the reconstructed word and the ancestor to the true/pred lists
             words_pred.append("".join(output_characters))
-            #print("predicted words")
+           # print("predicted words")
            # print(words_pred)
-            words_true.append(str(cs.ancestor))
-            #print("true words")
+            words_true.append(str(cs.ancestor_word))
+           # print("true words")
            # print(words_true)
-            if i % 100 == 0:
-                print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, i, len(train_data)))
+            if batch % 100 == 0:
+                print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, batch, len(cognate_sets)))
             # clear the list of output characters so we can create another word
-            output_characters.clear()
+            #output_characters.clear()
             #print("Batch {}, mean loss={}".format(i, np.mean(batch_losses)))
+       
+        #calculate mean epoch loss
+        mean_loss = np.mean(batch_losses)
+        epoch_losses.append(mean_loss)
+        print("Epoch[{}]/[{}], mean batch loss = {}".format(epoch, epochs, mean_loss))
+
         # calculate distances
         ld = LevenshteinDistance(true=words_true,
                                  pred=words_pred)
-        print("Epoch {} finished".format(epoch))
-        print("Mean loss={}".format(epoch, np.mean(epoch_losses)))
         ld.print_distances()
         ld.print_percentiles()
         print("epochs are finished")
@@ -272,8 +264,8 @@ def train():
         	print("this is the last epoch")
         	print(epoch)
         	# save reconstructed words (but only if the edit distance is at least one)
-        	outfile = "../out/plots_ciobanu_rnn/rnn_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
-        	title = "Model: recurrent net{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
+        	outfile = plots_dir / "ciobanu_rnn_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "", "_ortho" if ortho else "")
+        	title = "Model: ciobanu rnn{}{}{}".format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
         	plot_results(title=title,
                          distances={"=<" + str(d): count for d, count in ld.distances.items()},
                          percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
@@ -288,7 +280,51 @@ def train():
         			line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
         			result_file.write(line)
         	result_file.close()
+    words_pred.clear()
+    words_true.clear()
+    print("***** Training finished *****")
+    print()
+
+
+    print("***** Start testing *****")
+    for i, cognate_set in test_data.items():
+        output_characters = []
+        for lang_array in cognate_set:
+            target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
+            target = tf.dtypes.cast(target, tf.float32)
+            data = []
+            for lang, vec in lang_array.items():
+                data = np.array(vec)
+            data = tf.keras.backend.expand_dims(data, axis=0)
+            data = tf.dtypes.cast(data, tf.float32)
+            #print("testing data")
+            #print(data)
+            output = model(data)
+            # loss = loss_object(target, output)
+            output_characters.append(alphabet.get_char_by_vector(output))
+        words_pred.append("".join(output_characters))
+        words_true.append(str(cognate_set.ancestor_word))
+
+    # create plots
+    ld = LevenshteinDistance(words_true, words_pred)
+    ld.print_distances()
+    ld.print_percentiles()
+    outfile = plots_dir / "ciobanu_rnn_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
+                                                            "_ortho" if ortho else "")
+    title = "Model [Test]: ciobanu rnn, {}{}{}".format(", " + args.model, ", aligned" if aligned else "",
+                                                                 ", orthographic" if ortho else "")
+    plot_results(title=title,
+                 distances={"=<" + str(d): count for d, count in ld.distances.items()},
+                 percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
+                 mean_dist=ld.mean_distance,
+                 mean_dist_norm=ld.mean_distance_normalized,
+                 losses=[],
+                 outfile=Path(outfile),
+                 testing=True)
+
+    print("***** Testing finished *****")
+
 
 
 if __name__ == '__main__':
-    train()
+    main()

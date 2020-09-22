@@ -10,8 +10,13 @@ def plot_results(title: str,
                  mean_dist: float,
                  mean_dist_norm: float,
                  losses: List[float],
-                 outfile: Path):
-    fig, (ax_d, ax_p, ax_l) = plt.subplots(1, 3, figsize=(10, 4))
+                 outfile: Path,
+                 testing=False):
+
+    if not testing:
+        fig, (ax_d, ax_p, ax_l) = plt.subplots(1, 3, figsize=(10, 4))
+    else:
+        fig, (ax_d, ax_p) = plt.subplots(1, 2, figsize=(8, 4))
 
     # adjust figure size
     fig.tight_layout(pad=3.0)
@@ -43,10 +48,13 @@ def plot_results(title: str,
     # add labels to bars
     for i, bar in enumerate(bars):
         width = bar.get_width()
-        indent = 0.2 if i == len(y) else 0.05
-        #indent = 0.05
-        #if i == 0:
-        #    indent = -0.05
+        if i == len(y):
+            indent = 0.2
+        elif i == 0:
+            indent = 0.0
+        else:
+            indent = 0.05
+
         ax_p.annotate(
             "{}%".format(int(width*100)),
             xy=(indent + bar.get_width(), bar.get_y()+0.3*bar.get_height()),
@@ -57,11 +65,14 @@ def plot_results(title: str,
     ax_p.set_xlabel("Percentile")
     ax_p.set_ylabel("Distance")
 
-    # loss plot
-    l_xs = [str(i) for i in range(1, len(losses)+1)]
-    ax_l.plot(l_xs, losses)
-    ax_l.title.set_text("c) Training loss")
-    ax_l.set_xlabel("Epoch")
-    ax_l.set_ylabel("Mean loss")
+    if not testing:
+        # loss plot
+        l_xs = [str(i) for i in range(1, len(losses)+1)]
+        ax_l.plot(l_xs, losses)
+        ax_l.title.set_text("c) Training loss")
+        ax_l.set_xlabel("Epoch")
+        ax_l.set_ylabel("Mean loss")
+
     # save
     plt.savefig(outfile.absolute())
+    print("Figure saved at {}".format(outfile.absolute()))
