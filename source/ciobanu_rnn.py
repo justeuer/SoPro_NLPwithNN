@@ -54,7 +54,7 @@ def parser_args():
                         help="switch between aligned and unaligned model")
     parser.add_argument("--epochs",
                         type=int,
-                        default=10,
+                        default=1,
                         help="number of epochs")
     parser.add_argument("--out_tag",
                         type=str,
@@ -77,16 +77,7 @@ def main():
     assert args.aligned in [0, 1], "Too many instances of --aligned switch, should be 0 or 1"
     aligned = bool(args.aligned)
     # load data
-    data_file = None
-    if args.data == "ipa":
-        encoding = 'utf-16'
-        data_file = Path("../data/ciobanu/romance_ipa_auto.csv")
-    elif args.data == "asjp":
-        encoding = 'ascii'
-        data_file = Path("../data/ciobanu/romance_asjp_auto.csv")
-    elif args.data == "latin":
-        encoding = 'utf-16'
-        data_file = Path("../data/ciobanu/romance_orthographic.csv")
+    data_file = Path(args.data)
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     # determine model
     assert args.model in MODELS, "Model should be one of {}".format(MODELS)
@@ -180,10 +171,10 @@ def main():
 
 
     # initialize model
-    model, optimizer, loss_object = create_model(input_dim=alphabet.get_feature_dim(),
+    model, optimizer, loss_object = create_model(input_dim=alphabet.feature_dim,
                                                  embedding_dim=28,
                                                  context_dim=128,
-                                                 output_dim=alphabet.get_feature_dim())
+                                                 output_dim=alphabet.feature_dim)
 
     model.summary()
 
@@ -201,7 +192,7 @@ def main():
         words_pred.clear()
         batch_losses.clear()
         # iterate over the cognate sets
-        for batch, cognate_set in train_data.items():
+        for batch, cognate_set in test_data.items():
             output_characters = []
             # iterate over the character embeddings
             for lang_array in cognate_set:
@@ -294,7 +285,8 @@ def main():
             target = tf.dtypes.cast(target, tf.float32)
             data = []
             for lang, vec in lang_array.items():
-                data = np.array(vec)
+                data.append(list(vec))
+            data = np.array(data)
             data = tf.keras.backend.expand_dims(data, axis=0)
             data = tf.dtypes.cast(data, tf.float32)
             #print("testing data")
