@@ -1,5 +1,7 @@
 import numpy as np
 from numpy.linalg import norm
+from pathlib import Path
+import random
 import tensorflow as tf
 from tensorflow.keras import layers, Sequential
 from typing import List
@@ -87,6 +89,7 @@ class DeepModel(tf.keras.Model):
     into a single vector and then feed that into 2 fully connected layers (so technically
     there is only one real 'deep' layer.
     """
+
     def __init__(self, input_dim, hidden_dim, n_hidden, output_dim):
         super(DeepModel, self).__init__()
         # project into a single vector
@@ -116,6 +119,55 @@ def list_to_str(lst: List[float]):
     s = ""
     for num in lst:
         s += str(int(num)) + ","
-    return s[:len(s)-1]
+    return s[:len(s) - 1]
 
 
+def train_test_split_ids(n: int, tag: str, valid_size: 0.2):
+    """
+    Creates files containing the train/test indices for a given corpis
+    Parameters
+    ----------
+    n
+        The size of the corpus
+    tag
+        The tag (name) of the corpus
+    valid_size
+        The size of the test set
+    Returns
+    -------
+    """
+    # tag cannot be null
+    assert tag != None and tag != "", "Tag cannot be null!"
+
+    # determine indices
+    train_size = int((1 - valid_size) * n)
+    indices = set(range(1, n + 1))
+    train_indices = set(random.sample(indices, train_size))
+    test_indices = indices.difference(train_indices)
+
+    # paths
+    outpath_train = Path("../data/{}_train_indices.txt".format(tag))
+    outpath_test = Path("../data/{}_test_indices.txt".format(tag))
+    # create files
+    outpath_train.touch()
+    outpath_test.touch()
+
+    # save indices for later use
+    # train
+    outfile_train = outpath_train.open(mode='w')
+    for index in train_indices:
+        outfile_train.write("{}\n".format(index))
+    outfile_train.close()
+    print("Train indices saved at {}".format(outpath_train.absolute()))
+
+    # test
+    outfile_test = outpath_test.open(mode='w')
+    for index in test_indices:
+        outfile_test.write("{}\n".format(index))
+    outfile_test.close()
+    print("Test indices saved at {}".format(outpath_test.absolute()))
+
+
+if __name__ == '__main__':
+    train_test_split_ids(100, "swadesh", valid_size=0.2)
+    train_test_split_ids(3218, "ciobanu", valid_size=0.2)

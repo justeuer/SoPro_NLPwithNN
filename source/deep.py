@@ -114,6 +114,8 @@ def main():
 
     # determine output directories, create them if they do not exist
     out_tag = "_{}".format(args.out_tag)
+    # and tag for files with train/test indices
+    indices_tag = args.out_tag
     plots_dir = Path("../out/plots{}_deep".format(out_tag))
     if not plots_dir.exists():
         plots_dir.mkdir(parents=True)
@@ -172,16 +174,14 @@ def main():
         cognate_sets.append(cognate_set)
 
     # prepare train_test_split
-    data = {i: cognate_set for i, cognate_set in enumerate(cognate_sets)}
-    train_size = 0.8
-    n_train_samples = int(train_size * len(cognate_sets))
-    train_indices = random.sample(list(data), n_train_samples)
+    data = {str(i): cognate_set for i, cognate_set in enumerate(cognate_sets)}
+    train_indices = Path("../data/{}_train_indices.txt".format(indices_tag)).open('r').read().split("\n")
+    test_indices = Path("../data/{}_test_indices.txt".format(indices_tag)).open('r').read().split("\n")
     train_data = {i: cognate_set for i, cognate_set in data.items() if i in train_indices}
-    test_data = {i: cognate_set for i, cognate_set in data.items() if i not in train_indices}
+    test_data = {i: cognate_set for i, cognate_set in data.items() if i in test_indices}
 
     print("Train size: {}".format(len(train_data)))
     print("Test size: {}".format(len(test_data)))
-
 
     # input shape is a vector of size (number of languages without the ancestor * number of features)
     print("langs", langs)
@@ -228,7 +228,7 @@ def main():
             words_pred.append("".join(output_characters))
             words_true.append(str(cognate_set.ancestor_word))
             # print("".join(output_characters), str(cognate_set.ancestor_word))
-            if batch % 100 == 0:
+            if int(batch) % 100 == 0:
                 print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, batch, len(cognate_sets)))
         # calculate mean epoch loss
         mean_loss = np.mean(batch_losses)
