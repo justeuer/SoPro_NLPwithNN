@@ -293,7 +293,7 @@ def main():
     ld.print_percentiles()
     outfile = plots_dir / "deep_test_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
                                                             "_ortho" if ortho else "")
-    title = "Model [Test]: many to one with LSTM, {}{}{}".format(", " + args.model, ", aligned" if aligned else "",
+    title = "Model [Test]: deep, {}{}{}".format(", " + args.model, ", aligned" if aligned else "",
                                                                  ", orthographic" if ortho else "")
     plot_results(title=title,
                  distances={"=<" + str(d): count for d, count in ld.distances.items()},
