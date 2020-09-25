@@ -230,7 +230,7 @@ def main():
             words_pred.append("".join(output_characters))
             words_true.append(str(cognate_set.ancestor_word))
             # print("".join(output_characters), str(cognate_set.ancestor_word))
-            if batch % 100 == 0:
+            if int(batch) % 100 == 0:
                 print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, batch, len(cognate_sets)))
         # calculate mean epoch loss
         mean_loss = np.mean(batch_losses)
