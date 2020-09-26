@@ -4,7 +4,7 @@ from pathlib import Path
 import random
 import tensorflow as tf
 from tensorflow.keras import layers, Sequential
-from typing import List
+from typing import List, Set
 
 
 def create_model(input_dim,
@@ -137,7 +137,7 @@ def train_test_split_ids(n: int, tag: str, valid_size: 0.2):
     -------
     """
     # tag cannot be null
-    assert tag != None and tag != "", "Tag cannot be null!"
+    assert tag is not None and tag != "", "Tag cannot be None!"
 
     # determine indices
     train_size = int((1 - valid_size) * n)
@@ -168,6 +168,49 @@ def train_test_split_ids(n: int, tag: str, valid_size: 0.2):
     print("Test indices saved at {}".format(outpath_test.absolute()))
 
 
-if __name__ == '__main__':
-    train_test_split_ids(100, "swadesh", valid_size=0.2)
-    train_test_split_ids(3218, "ciobanu", valid_size=0.2)
+def cross_validation_runs(n: int, indices: Set[str]):
+    """
+    Will randomly sample n cross-validation folds from a set of indices
+    Parameters
+    ----------
+    n
+        The number of cross-validation folds
+    indices
+        The indices to be sampled from
+    Returns
+        A list of combinations of the n folds, for n cross-validation runs
+    -------
+
+    """
+    folds = []
+    # This means that indices beyond n * fold_size will be ignored
+    fold_size = int(len(indices) / n)
+    print("Preparing {} folds of size {}".format(n, fold_size))
+
+    for _ in range(n):
+        fold = random.sample(indices, fold_size)
+        indices = indices.difference(fold)
+        folds.append(fold)
+
+    # now sample n runs from the n folds
+    runs = []
+    for i in range(n):
+        run = {}
+        test_data = folds[i]
+        train_data = []
+        for fold in folds:
+            train_data.extend(fold)
+
+        runs.append({
+            'train': train_data,
+            'test': test_data
+        })
+
+    return runs
+
+# if __name__ == '__main__':
+# train_test_split_ids(100, "swadesh", valid_size=0.0)
+# train_test_split_ids(3218, "ciobanu", valid_size=0.2)
+# indices = set([str(i) for i in range(1, 3219)])
+# runs = cross_validation_runs(5, indices)
+# print(runs)
