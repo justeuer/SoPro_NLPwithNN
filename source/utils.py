@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 from numpy.linalg import norm
 from pathlib import Path
@@ -195,12 +196,11 @@ def cross_validation_runs(n: int, indices: Set[str]):
     # now sample n runs from the n folds
     runs = []
     for i in range(n):
-        run = {}
-        test_data = folds[i]
+        folds_ = deepcopy(folds)
+        test_data = folds_.pop(i)
         train_data = []
-        for fold in folds:
+        for fold in folds_:
             train_data.extend(fold)
-
         runs.append({
             'train': train_data,
             'test': test_data

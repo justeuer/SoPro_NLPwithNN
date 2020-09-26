@@ -560,17 +560,3 @@ class LevenshteinDistance(object):
     @property
     def mean_distance_normalized(self):
         return self.__mean_distance_normalized
-
-
-if __name__ == '__main__':
-    asjp = Alphabet(Path("../data/alphabets/asjp.csv"), encoding='utf-8')
-    print(asjp)
-    ciobanu_asjp = Path("../data/romance_asjp_auto.csv").open(encoding='utf-16').read()
-    for line in ciobanu_asjp.split("\n")[1:]:
-        splitted = line.split(",")
-        print(splitted)
-        id = splitted[0]
-        words = splitted[2:]
-        for word in words:
-            asjp_word = asjp.translate(word)
-            print(id, asjp_word)
