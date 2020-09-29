@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 import numpy as np
 from pathlib import Path
 
-from utils import create_deep_model, cross_validation_runs
+from utils import create_feedforward_model
 from classes import Alphabet, CognateSet, LevenshteinDistance
 from plots import plot_results
 
@@ -17,10 +17,10 @@ MODELS = ['ipa', 'asjp', 'latin']
 
 
 # To train the script with latin characters I run this command:
-# python deep.py --data=../data/romance_orthographic.csv --model=latin --ortho
+# python feedforward.py --data=../data/romance_swadesh_latin.csv --model=latin --ortho
 
 # and for the ciobanu data & latin alphabet:
-# python deep.py --data=../data/romance_ciobanu_latin_orthographic.csv --model=latin --ancestor=ancestor \
+# python feedforward.py --data=../data/romance_ciobanu_latin.csv --model=latin --ancestor=ancestor \
 # --out_tag=ciobanu
 # The last switch will create separate output folders for the ciobanu data, but you can use any value
 # If you don't want to overwrite existing files
@@ -36,11 +36,11 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--data",
                         type=str,
-                        default="../data/romance_ipa_full.csv",
+                        default="../data/romance_swadesh_ipa.csv",
                         help="file containing the cognate sets")
     parser.add_argument("--model",
                         type=str,
-                        default="asjp",
+                        default="ipa",
                         help="model to be trained")
     parser.add_argument("--ancestor",
                         type=str,
@@ -115,19 +115,19 @@ def main():
     out_tag = "_{}".format(args.out_tag)
     # and tag for files with train/test indices
     indices_tag = args.out_tag
-    plots_dir = Path("../out/plots{}_deep".format(out_tag))
+    plots_dir = Path("../out/plots{}_feedforward".format(out_tag))
     if not plots_dir.exists():
         plots_dir.mkdir(parents=True)
     # directory for lists of reconstructed vs. latin words
-    results_dir = Path("../out/results{}_deep".format(out_tag))
+    results_dir = Path("../out/results{}_feedforward".format(out_tag))
     if not results_dir.exists():
         results_dir.mkdir(parents=True)
     # create file for results
-    result_file_path = results_dir / "deep_{}{}{}.txt".format(args.model,
-                                                              "_aligned" if aligned else "",
-                                                              "_ortho" if ortho else "")
-    #result_file_path.touch()
-    #result_file = result_file_path.open('w', encoding=encoding)
+    result_file_path = results_dir / "feedforward_{}{}{}.txt".format(args.model,
+                                                             "_aligned" if aligned else "",
+                                                            "_ortho" if ortho else "")
+    result_file_path.touch()
+    result_file = result_file_path.open('w', encoding=encoding)
 
     # determine ancestor
     ancestor = args.ancestor
@@ -174,12 +174,12 @@ def main():
         cognate_sets.append(cognate_set)
 
     # prepare cross validation runs
-    total_data = {str(i+1): cognate_set for i, cognate_set in enumerate(cognate_sets)}
+    total_data = {str(i + 1): cognate_set for i, cognate_set in enumerate(cognate_sets)}
     train_indices = set(total_data.keys())
-    runs = cross_validation_runs(5, train_indices)
-    #test_indices = Path("../data/{}_test_indices.txt".format(indices_tag)).open('r').read().split("\n")
-    #train_data = {i: cognate_set for i, cognate_set in data.items() if i in train_indices}
-    #test_data = {i: cognate_set for i, cognate_set in data.items() if i in test_indices}
+    # runs = cross_validation_runs(5, train_indices)
+    test_indices = Path("../data/{}_test_indices.txt".format(indices_tag)).open('r').read().split("\n")
+    train_data = {i: cognate_set for i, cognate_set in total_data.items() if i in train_indices}
+    test_data = {i: cognate_set for i, cognate_set in total_data.items() if i in test_indices}
 
     # input shape is a vector of size (number of languages without the ancestor * number of features)
     print("langs", langs)
@@ -188,124 +188,129 @@ def main():
     # output dim is the number of characters (for classification)
     output_dim = alphabet.feature_dim
     # define model
-    model, optimizer, loss_object = create_deep_model(input_dim=input_dim,
-                                                      hidden_dim=256,
-                                                      n_hidden=n_hidden,
-                                                      output_dim=output_dim)
+    model, optimizer, loss_object = create_feedforward_model(input_dim=input_dim,
+                                                             hidden_dim=256,
+                                                             n_hidden=n_hidden,
+                                                             output_dim=output_dim)
     model.summary()
 
     # save model weights for reset
-    initital_weights = model.get_weights()
+    # initital_weights = model.get_weights()
 
     words_true = []
-    wts = []
-    wps = []
     words_pred = []
     epoch_losses = []
     batch_losses = []
 
-    # Training with cross-validation
-    for i, run in enumerate(runs):
-        print("***** Cross-validation run [{}/{}] *****".format(i+1, len(runs)))
-        # reload initial model weights
-        model.set_weights(initital_weights)
-        # get train & test folds
-        train_data = {i: cognate_set for i, cognate_set in total_data.items() if i in run['train']}
-        test_data = {i: cognate_set for i, cognate_set in total_data.items() if i in run['test']}
+    # Training
 
-        print("***** Start training *****")
-        for epoch in range(1, epochs + 1):
-            words_true.clear()
-            words_pred.clear()
-            batch_losses.clear()
-            for batch, cognate_set in train_data.items():
-                output_characters = []
-                for lang_array in cognate_set:
-                    target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
-                    target = tf.dtypes.cast(target, tf.float32)
-                    data = []
-                    for lang, vec in lang_array.items():
-                        data.append(list(vec))
-                    data = np.array(data)
-                    data = tf.dtypes.cast(data, tf.float32)
-                    data = tf.reshape(data, (1, -1))
-                    with tf.GradientTape() as tape:
-                        output = model(data)
-                        loss = loss_object(target, output)
-                        batch_losses.append(float(loss))
-                        gradients = tape.gradient(loss, model.trainable_weights)
-                        optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-                        output_characters.append(alphabet.get_char_by_vector(output))
-                words_pred.append("".join(output_characters))
-                words_true.append(str(cognate_set.ancestor_word))
-                # print("".join(output_characters), str(cognate_set.ancestor_word))
-                if int(batch) % 100 == 0:
-                    print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, batch, len(cognate_sets)))
-            # calculate mean epoch loss
-            mean_loss = np.mean(batch_losses)
-            epoch_losses.append(mean_loss)
-            print("Epoch[{}]/[{}], mean batch loss = {}".format(epoch, epochs, mean_loss))
-            # calculate levenshtein distance
-            ld = LevenshteinDistance(true=words_true, pred=words_pred)
-            ld.print_distances()
-            ld.print_percentiles()
-
-            # save reconstructed words (but only if the edit distance is at least one)
-            #import nltk
-            #for t, p in zip(words_true, words_pred):
-            #    distance = nltk.edit_distance(t, p)
-            #    if distance > 0:
-            #        line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
-            #        result_file.write(line)
-            #result_file.close()
-
-        words_pred.clear()
+    print("***** Start training *****")
+    for epoch in range(1, epochs + 1):
         words_true.clear()
-        print("***** Training finished *****")
-        print()
-
-        # Testing
-        # Do the same thing as above with the test data, but don't collect the gradients
-        # and don't backpropagate
-        print("***** Start testing *****")
-        for i, cognate_set in test_data.items():
+        words_pred.clear()
+        batch_losses.clear()
+        for batch, cognate_set in train_data.items():
             output_characters = []
             for lang_array in cognate_set:
-                # drop the latin column to get right input size
-                lang_array.pop(ancestor)
-                # target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
-                # target = tf.dtypes.cast(target, tf.float32)
+                target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
+                target = tf.dtypes.cast(target, tf.float32)
                 data = []
                 for lang, vec in lang_array.items():
                     data.append(list(vec))
                 data = np.array(data)
-                data = tf.keras.backend.expand_dims(data, axis=0)
                 data = tf.dtypes.cast(data, tf.float32)
-                output = model(data)
-                # loss = loss_object(target, output)
-                output_characters.append(alphabet.get_char_by_vector(output))
-            # compile the reconstructed word
+                data = tf.reshape(data, (1, -1))
+                with tf.GradientTape() as tape:
+                    output = model(data)
+                    loss = loss_object(target, output)
+                    batch_losses.append(float(loss))
+                    gradients = tape.gradient(loss, model.trainable_weights)
+                    optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+                    output_characters.append(alphabet.get_char_by_vector(output))
             words_pred.append("".join(output_characters))
-            # save the true word for the distance calculation
             words_true.append(str(cognate_set.ancestor_word))
-        wts.extend(words_true)
-        wps.extend(words_pred)
-
-        # create plots
-        ld = LevenshteinDistance(words_true, words_pred)
+            # print("".join(output_characters), str(cognate_set.ancestor_word))
+            if int(batch) % 100 == 0:
+                print("Epoch [{}/{}], Batch [{}/{}]".format(epoch, epochs, batch, len(cognate_sets)))
+        # calculate mean epoch loss
+        mean_loss = np.mean(batch_losses)
+        epoch_losses.append(mean_loss)
+        print("Epoch[{}]/[{}], mean batch loss = {}".format(epoch, epochs, mean_loss))
+        # calculate levenshtein distance
+        ld = LevenshteinDistance(true=words_true, pred=words_pred)
         ld.print_distances()
         ld.print_percentiles()
 
-        print("***** Testing finished *****")
+        if epoch == epochs:
+            # save results after last run
+            outfile = plots_dir / "feedforward_train_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
+                                                                     "_ortho" if ortho else "")
+            title = "Model [Train]: feedforward, {}{}{}" \
+                .format(args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
+            plot_results(title=title,
+                         distances={"=<" + str(d): count / 5 for d, count in ld.distances.items()},
+                         percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
+                         mean_dist=ld.mean_distance,
+                         mean_dist_norm=ld.mean_distance_normalized,
+                         losses=epoch_losses,
+                         outfile=Path(outfile),
+                         testing=True)
+
+
+
+    words_pred.clear()
+    words_true.clear()
+    print("***** Training finished *****")
+    print()
+
+    # Testing
+    # Do the same thing as above with the test data, but don't collect the gradients
+    # and don't backpropagate
+    print("***** Start testing *****")
+    for i, cognate_set in test_data.items():
+        output_characters = []
+        for lang_array in cognate_set:
+            # drop the latin column to get right input size
+            lang_array.pop(ancestor)
+            # target = tf.keras.backend.expand_dims(lang_array.pop(ancestor).to_numpy(), axis=0)
+            # target = tf.dtypes.cast(target, tf.float32)
+            data = []
+            for lang, vec in lang_array.items():
+                data.append(list(vec))
+            data = np.array(data)
+            data = tf.keras.backend.expand_dims(data, axis=0)
+            data = tf.dtypes.cast(data, tf.float32)
+            output = model(data)
+            # loss = loss_object(target, output)
+            output_characters.append(alphabet.get_char_by_vector(output))
+        # compile the reconstructed word
+        words_pred.append("".join(output_characters))
+        # save the true word for the distance calculation
+        words_true.append(str(cognate_set.ancestor_word))
+
+    # save reconstructed words (but only if the edit distance is at least one)
+    import nltk
+    for t, p in zip(words_true, words_pred):
+        distance = nltk.edit_distance(t, p)
+        if distance > 0:
+            line = "{},{},distance={}\n".format(t, p, nltk.edit_distance(t, p))
+            result_file.write(line)
+    result_file.close()
+
+    # create plots
+    ld = LevenshteinDistance(words_true, words_pred)
+    ld.print_distances()
+    ld.print_percentiles()
+
+    print("***** Testing finished *****")
 
     # save results after last run
-    outfile = plots_dir / "deep_test_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
-                                                                    "_ortho" if ortho else "")
-    title = "Model [Test]:  {}{}{}\n 5 cross-validation folds"\
-        .format(", " + args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
-    ld = LevenshteinDistance(wts, wps)
+    outfile = plots_dir / "feedforward_test_{}{}{}.jpg".format(args.model, "_aligned" if aligned else "",
+                                                        "_ortho" if ortho else "")
+    title = "Model [Test]: feedforward, {}{}{}" \
+        .format(args.model, ", aligned" if aligned else "", ", orthographic" if ortho else "")
     plot_results(title=title,
-                 distances={"=<" + str(d): count/5 for d, count in ld.distances.items()},
+                 distances={"=<" + str(d): count / 5 for d, count in ld.distances.items()},
                  percentiles={"=<" + str(d): perc for d, perc in ld.percentiles.items()},
                  mean_dist=ld.mean_distance,
                  mean_dist_norm=ld.mean_distance_normalized,

@@ -22,10 +22,10 @@ def create_model(input_dim,
     return model, optimizer, loss_object
 
 
-def create_deep_model(input_dim,
-                      hidden_dim,
-                      n_hidden,
-                      output_dim):
+def create_feedforward_model(input_dim,
+                             hidden_dim,
+                             n_hidden,
+                             output_dim):
     model = DeepModel(input_dim=input_dim, hidden_dim=hidden_dim, n_hidden=n_hidden, output_dim=output_dim)
     optimizer = tf.keras.optimizers.Adam()
     # cosine similarity since that is also the function we use to retrieve the chars
@@ -208,8 +208,9 @@ def cross_validation_runs(n: int, indices: Set[str]):
 
     return runs
 
-# if __name__ == '__main__':
-# train_test_split_ids(100, "swadesh", valid_size=0.0)
+
+if __name__ == '__main__':
+    train_test_split_ids(100, "test", valid_size=0.2)
 # train_test_split_ids(3218, "ciobanu", valid_size=0.2)
 # indices = set([str(i) for i in range(1, 3219)])
 # runs = cross_validation_runs(5, indices)

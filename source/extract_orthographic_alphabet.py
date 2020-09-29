@@ -8,7 +8,7 @@ CONCEPT_COL = "concept"
 
 # load data
 
-romance_ortho_loc = Path("../data/romance_orthographic.csv")
+romance_ortho_loc = Path("../data/romance_swadesh_latin.csv")
 print("Load romance orthographic data from {}".format(romance_ortho_loc.absolute()))
 romance_ortho = romance_ortho_loc.open(encoding='utf-16').read().split("\n")
 print("Loaded {} cognate sets".format(len(romance_ortho[1:])))

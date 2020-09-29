@@ -19,7 +19,7 @@ def lst_to_str(lst: List[str]):
 def main():
     parser = ArgumentParser()
     parser.add_argument("-d", type=str, default="../data/LREC-2014-parallel-list.txt")
-    parser.add_argument("-o", type=str, default="../data/romance_ipa_auto.csv")
+    parser.add_argument("-o", type=str, default="../data/romance_ciobanu_ipa.csv")
     #parser.add_argument("--align", action='count', default=0)
     args = parser.parse_args()
 

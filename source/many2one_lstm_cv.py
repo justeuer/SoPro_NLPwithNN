@@ -17,10 +17,10 @@ MODELS = ['ipa', 'asjp', 'latin']
 
 
 # To train the script with latin characters I run this command:
-# python deep.py --data=../data/romance_orthographic.csv --model=latin --ortho
+# python feedforward.py --data=../data/romance_swadesh_latin.csv --model=latin --ortho
 
 # and for the ciobanu data & latin alphabet:
-# python many2one_lstm.py --data=../data/romance_ciobanu_latin_orthographic.csv --model=latin --ancestor=ancestor \
+# python many2one_lstm.py --data=../data/romance_ciobanu_latin.csv --model=latin --ancestor=ancestor \
 # --out_tag=ciobanu
 # The last switch will create separate output folders for the ciobanu data, but you can use any value
 # If you don't want to overwrite existing files
@@ -36,11 +36,11 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--data",
                         type=str,
-                        default="../data/romance_ipa_full.csv",
+                        default="../data/romance_swadesh_ipa.csv",
                         help="file containing the cognate sets")
     parser.add_argument("--model",
                         type=str,
-                        default="asjp",
+                        default="ipa",
                         help="model to be trained")
     parser.add_argument("--ancestor",
                         type=str,

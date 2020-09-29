@@ -6,7 +6,7 @@ id_col = 0
 langs = ['latin', 'italian', 'spanish', 'french', 'portuguese', 'romanian']
 
 path_to_ipa = Path("../data/alphabets/ipa.csv")
-path_to_romance_data = Path("../data/romance_ipa_full.csv")
+path_to_romance_data = Path("../data/romance_swadesh_ipa.csv")
 
 ipa = Alphabet(path_to_ipa)
 romance_data = path_to_romance_data.open(encoding='utf-16').read().split("\n")

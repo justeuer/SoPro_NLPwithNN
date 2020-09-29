@@ -11,7 +11,7 @@ def list_to_str(lst: List[str]):
 
 cioabnu_ortho_loc = Path("../data/LREC-2014-parallel-list.txt")
 cioabnu_ortho = cioabnu_ortho_loc.open(encoding='utf-8').read().split("\n")
-ciobanu_corpus_file = Path("../data/romance_ciobanu_latin_orthographic.csv")
+ciobanu_corpus_file = Path("../data/romance_ciobanu_latin.csv")
 ciobanu_corpus_file.touch()
 ciobanu_corpus_file = ciobanu_corpus_file.open(mode='w', encoding='utf-16')
 

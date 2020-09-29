@@ -7,10 +7,10 @@ ipa = Alphabet(Path("../data/alphabets/ipa.csv"))
 sca = rc('asjp')
 converter = Ipa2Asjp(sca, ["ː"])
 
-romance_ipa_path = Path("../data/romance_ipa_auto.csv")
+romance_ipa_path = Path("../data/romance_ciobanu_ipa.csv")
 romance_ipa = romance_ipa_path.open(encoding='utf-16').read()
 
-out_path = Path("../data/romance_asjp_auto.csv")
+out_path = Path("../data/romance_ciobanu_asjp.csv")
 out_path.touch()
 out_file = out_path.open('w', encoding='utf-16')
 
