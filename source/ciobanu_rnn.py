@@ -38,7 +38,7 @@ def parser_args():
     parser = ArgumentParser()
     parser.add_argument("--data",
                         type=str,
-                        default="../data/ciobanu/romance_asjp_auto.csv",
+                        default="../data/ciobanu/romance_ciobanu_asjp.csv",
                         help="file containing the cognate sets")
     parser.add_argument("--model",
                         type=str,
@@ -84,10 +84,10 @@ def train():
     data_file = None
     if args.data == "ipa":
         encoding = 'utf-16'
-        data_file = Path("../data/romance_ipa_auto.csv")
+        data_file = Path("../data/romance_ciobanu_ipa.csv")
     elif args.data == "asjp":
         encoding = 'ascii'
-        data_file = Path("../data/romance_asjp_auto.csv")
+        data_file = Path("../data/romance_ciobanu_asjp.csv")
     assert data_file.exists() and data_file.is_file(), "Data file {} does not exist".format(data_file)
     # determine model
     assert args.model in MODELS, "Model should be one of {}".format(MODELS)

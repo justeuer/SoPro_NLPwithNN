@@ -52,7 +52,7 @@ def parser_args():
     parser = ArgumentParser()
     parser.add_argument("--data",
                         type=str,
-                        default="../data/ciobanu/romance_asjp_auto.csv",
+                        default="../data/ciobanu/romance_ciobanu_asjp.csv",
                         help="file containing the cognate sets")
     parser.add_argument("--model",
                         type=str,
