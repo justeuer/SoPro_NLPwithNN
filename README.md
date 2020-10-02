@@ -43,7 +43,7 @@ with 5 cross-validation folds.
  The results will be saved at `out/plots_swadesh_feedforward`.
 * To train the LSTM model on Latin character embeddings on dataset **A**:
 
-`python many2one_lstm.py --data../data/romance_ciobanu_latin.csv --model=latin --orhto`
+`python many2one_lstm.py --data../data/romance_ciobanu_latin.csv --model=latin --ortho`
 
 The `--ortho` flag is required here since we don't have feature encodings for the Latin characters.
 
