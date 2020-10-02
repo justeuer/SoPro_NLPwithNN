@@ -1,5 +1,9 @@
 # Proto-word reconstruction with NNs
 
+## Get the data
+
+Our self-compiled dataset is included in the repository at `data/romance_swadesh*.csv`. For the data derived from the Ciobanu 2014 dataset, please email us.
+
 ## How to train our models
 
 ### Python requirements
