@@ -41,11 +41,18 @@ with 5 cross-validation folds.
 
 ### Sample script calls
 * To train the feedforward model on ASJP feature encodings and the aligned data:
+
  `python feedforward.py --data=../data/romance_swadesh_ipa.csv --model=ipa --aligned --out_tag=swadesh`
+ 
  The results will be saved at `out/plots_swadesh_feedforward`.
 * To train the LSTM model on Latin character embeddings on dataset **A**:
-`python many2one_lstm.py --data../data/romance_ciobanu_latin.csv --model=latin --orhto`
+
+`python many2one_lstm.py --data../data/romance_ciobanu_latin.csv --model=latin --ortho`
+
 The `--ortho` flag is required here since we don't have feature encodings for the Latin characters.
+
 * To train the feedforward model on IPA character embeddings on dataset **B** and run cross-validation:
+
 `python feedforward_cv.py --data=../data/romance_swadesh_ipa.csv --model=latin --ortho`
+
 * **TODO: RNN**
