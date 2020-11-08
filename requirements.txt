@@ -3,8 +3,6 @@ appdirs==1.4.4
 astor==0.8.1
 astunparse==1.6.3
 attrs==20.2.0
-blinker==1.4
-brotlipy==0.7.0
 cachetools @ file:///tmp/build/80754af9/cachetools_1596822027882/work
 certifi==2020.6.20
 cffi @ file:///C:/ci/cffi_1598352799320/work
