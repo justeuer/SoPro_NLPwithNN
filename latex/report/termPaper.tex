@@ -1,0 +1,115 @@
+\documentclass[pdftex,12pt,a4paper]{article}
+
+% just for this template
+\usepackage{lipsum}
+
+% For graphics
+\usepackage[pdftex]{graphicx}
+% you can place a figure at the position where it occurs in the text using [H]
+\usepackage{here}
+
+% For flexible tables
+\usepackage{multirow}
+
+% In case you need umlauts
+% \usepackage[utf8]{inputenc}
+
+
+% Sophisticated citation.
+% Check out: http://merkel.zoneo.net/Latex/natbib.php
+\usepackage{natbib}
+
+% Math symbols not defined in the usual package, e.g. arrows that are crossed.
+\usepackage{amssymb}
+
+% Arrows with text / superscript
+\usepackage{amsmath}
+
+% Different font - something like Arial
+%\usepackage{mathptmx}
+
+% Adjust margin of paper.
+\usepackage{geometry}
+\geometry{a4paper, top=25mm, left=25mm, right=25mm, bottom=25mm}
+
+% Zeilenabstand 1.25 %
+\linespread{1.2}
+
+% Example Environments
+\usepackage{amsthm}
+\newtheoremstyle{style}   
+  {0.5cm}              %Space above    
+  {-0.8cm}              %Space below
+  {}                      %Body font: original {\normalfont}    
+  {}                      %Indent amount (empty = no indent,%\parindent = paraindent)    
+  {\normalfont\bfseries}  %Thm head font original       
+  {{\normalfont\bfseries \thmname{#1}\thmnumber{ #2}}}
+\theoremstyle{style}
+\newtheorem{example}{Example}[section]
+
+% Formula Environments
+\newtheorem{formula}{Formula}[section]
+
+% Computational Linguistics trees etc.
+\usepackage{xyling}
+
+% Nicer captions
+\usepackage{caption2}
+\newcaptionstyle{mystyle}{%
+  \normalcaptionparams
+  \renewcommand\captionlabelfont{\bfseries}%
+  \renewcommand\captionlabeldelim{.}%
+  \onelinecaptionsfalse
+  \usecaptionstyle{centerlast}}
+
+\captionstyle{mystyle}
+
+% Table of contents depth
+\setcounter{tocdepth}{3}
+
+% A horizontal rule for the title page
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+% Paragraph and indent (as required by Prof. Dr. Pinkal)
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2ex plus 0.5ex minus 0.2ex}
+
+\begin{document}
+
+% Include the title page (modify title.tex!)
+\input{title.tex}
+
+\thispagestyle{empty}
+\begin{abstract}
+\setlength{\parskip}{2ex plus 0.5ex minus 0.2ex}
+
+% Please put \noindent before each paragraph of the abstract!
+\noindent 
+Reconstructing a proto language requires large amounts of cognate data. In recent years automated approaches to proto-word reconstruction have been introduced that try to establish these relationships without relying on human knowledge. One of these approaches is using a decoder-encoder neural model with attention.
+In our paper, we evaluate whether a decoder-encoder model is necessary to weigh the influence of the individual languages on the form of the reconstructed word. We test a series of simpler (recurrent and non-recurrent) models on a dataset that is often used for this purpose. In addition, we compile a smaller data set to evaluate how these models scale to low-researched families. 
+We found that all models tested performed worse compared to a sequence-to-sequence baseline in \citet{meloni2019ab}, with simple recurrent and LSTM recurrent models being outperformed by a deep feedforward model. In addition we observed a signifcant drop in performance when training on the self-compiled dataset, indicating that large cognate data sets are required for the task.
+\end{abstract}
+\newpage
+
+% Table of contents
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+
+% Start of content
+\setcounter{page}{1}		% Seitenzähler auf 1 setzen %
+%\pagestyle{fancy}				% fancy header style
+\pagenumbering{arabic}
+\newpage
+\input{section1}
+
+\newpage
+\input{section2}
+
+
+% REFERENCES
+\newpage
+\bibliographystyle{apalike}
+\bibliography{references,anthology}
+
+\end{document}
