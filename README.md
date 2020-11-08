@@ -37,14 +37,15 @@ with 5 cross-validation folds.
 |`many2one_lstm.py` | Trains the LSTM model | No |
 |`feedforward_cv.py` | Trains the feedforward model | Yes |
 |`many2one_lstm_cv.py` | Trains the LSTM model | Yes |
-**TODO: RNN**
+|'ciobanu_rnn.py' | Trains the RNN model | Yes |
 
 ### Sample script calls
 * To train the feedforward model on ASJP feature encodings and the aligned data:
 
- `python feedforward.py --data=../data/romance_swadesh_ipa.csv --model=ipa --aligned --out_tag=swadesh`
+ `python feedforward.py --data=../data/romance_asjp_full.csv --model=asjp --aligned --out_tag=swadesh`
  
  The results will be saved at `out/plots_swadesh_feedforward`.
+ 
 * To train the LSTM model on Latin character embeddings on dataset **A**:
 
 `python many2one_lstm.py --data../data/romance_ciobanu_latin.csv --model=latin --ortho`
@@ -55,4 +56,6 @@ The `--ortho` flag is required here since we don't have feature encodings for th
 
 `python feedforward_cv.py --data=../data/romance_swadesh_ipa.csv --model=latin --ortho`
 
-* **TODO: RNN**
+* To train the RNN model on ASJP feature encodings and the aligned data:
+
+`python ciobanu_rnn.py --data=../data/romance_asjp_full.csv --model=asjp --ortho --out_tag=swadesh`
