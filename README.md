@@ -37,7 +37,7 @@ with 5 cross-validation folds.
 |`many2one_lstm.py` | Trains the LSTM model | No |
 |`feedforward_cv.py` | Trains the feedforward model | Yes |
 |`many2one_lstm_cv.py` | Trains the LSTM model | Yes |
-|'ciobanu_rnn.py' | Trains the RNN model | Yes |
+|`ciobanu_rnn.py` | Trains the RNN model | Yes |
 
 ### Sample script calls
 * To train the feedforward model on ASJP feature encodings and the aligned data:
